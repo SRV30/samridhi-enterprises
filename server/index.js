@@ -52,10 +52,11 @@ app.get("/", (req, res) => {
 //routes
 import userRouter from "./route/userRoute.js";
 import brandRouter from "./route/brandRoutes.js";
+import bikeModelRouter from "./route/bikeModelRoutes.js";
 
 app.use("/api/user", userRouter);
 app.use("/api/brand", brandRouter);
-
+app.use("/api/bike-model", bikeModelRouter);
 
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

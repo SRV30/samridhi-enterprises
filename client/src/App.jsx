@@ -15,6 +15,7 @@ import UpdateProfile from "./pages/my-profile/UpdateProfile";
 import Footer from "./components/Footer";
 import AdminBrandPage from "./pages/admin/AdminBrandPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminBikeModelPage from "./pages/admin/AdminBikePage";
 
 function App() {
   return (
@@ -78,6 +79,14 @@ function App() {
           element={
             <ProtectedRoute isAdmin={true}>
               <AdminBrandPage />
+            </ProtectedRoute>
+          }
+        />
+          <Route
+          path="/admin/bikes"
+          element={
+            <ProtectedRoute isAdmin={true}>
+              <AdminBikeModelPage />
             </ProtectedRoute>
           }
         />
