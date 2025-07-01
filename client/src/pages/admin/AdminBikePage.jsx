@@ -14,7 +14,6 @@ import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import ConfirmationModal from "../../extras/ConfirmationModel";
 import Loader from "../../extras/Loader";
-import { MoveDownIcon } from "lucide-react";
 
 export default function AdminBikeModelPage() {
   const dispatch = useDispatch();
@@ -330,7 +329,7 @@ export default function AdminBikeModelPage() {
                           <img
                             src={imagePreview}
                             alt="preview"
-                            className="w-32 h-32 object-cover rounded-2xl shadow-lg border-4 border-blue-100"
+                            className="w-32 h-32 object-fit rounded-2xl shadow-lg border-4 border-blue-100"
                           />
                         </motion.div>
                       )}
@@ -396,7 +395,7 @@ export default function AdminBikeModelPage() {
                         <img
                           src={model.images[0].url}
                           alt={model.name}
-                          className="w-full h-full object-cover rounded-2xl shadow-lg border-2 border-blue-100 group-hover:border-blue-300 transition-all duration-300"
+                          className="w-full h-full object-fit rounded-2xl shadow-lg border-2 border-blue-100 group-hover:border-blue-300 transition-all duration-300"
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center text-3xl border-2 border-blue-100 group-hover:border-blue-300 transition-all duration-300">

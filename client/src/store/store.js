@@ -3,6 +3,8 @@ import authReducer from "./auth-slice/user";
 import otpSlice from "./auth-slice/otpSlice";
 import brandSlice from "./product/brandSlice";
 import bikeSlice from "./product/bikeSlice";
+import partSlice from "./product/partsSlice";
+import cartSlice from "./cart/cartSlice";
 
 const store = configureStore({
   reducer: {
@@ -10,6 +12,8 @@ const store = configureStore({
     otp: otpSlice,
     brand: brandSlice,
     bike: bikeSlice,
+    parts: partSlice,
+    cart: cartSlice,
   },
 });
 

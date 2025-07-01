@@ -248,7 +248,7 @@ export default function AdminBrandPage() {
                         <img
                           src={imagePreview}
                           alt="Preview"
-                          className="w-24 h-24 object-cover rounded-2xl border-4 border-blue-200 shadow-lg"
+                          className="w-24 h-24 object-fit rounded-2xl border-4 border-blue-200 shadow-lg"
                         />
                       </motion.div>
                     )}
@@ -370,7 +370,7 @@ export default function AdminBrandPage() {
                               <img
                                 src={brand.images[0].url}
                                 alt={brand.name}
-                                className="w-20 h-20 object-cover rounded-2xl border-4 border-blue-200 shadow-lg"
+                                className="w-20 h-20 object-fit rounded-2xl border-4 border-blue-200 shadow-lg"
                               />
                             ) : (
                               <div className="w-20 h-20 bg-gradient-to-br from-blue-200 to-blue-300 rounded-2xl flex items-center justify-center text-2xl text-blue-600">

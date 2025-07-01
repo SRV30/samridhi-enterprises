@@ -128,7 +128,7 @@ const UpdateProfile = () => {
               <motion.img
                 src={profileImage}
                 alt="Profile"
-                className="w-32 h-32 object-cover rounded-full border-4 border-blue-400 shadow-lg"
+                className="w-32 h-32 object-fit rounded-full border-4 border-blue-400 shadow-lg"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4 }}

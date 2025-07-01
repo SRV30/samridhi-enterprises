@@ -1,4 +1,3 @@
-import React from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { Users, Car, Building2, ClipboardList } from "lucide-react";
@@ -66,9 +65,14 @@ const AdminDashboard = () => {
           Add Bike Brands
         </button>
       </Link>
-       <Link to="/admin/bikes">
+      <Link to="/admin/bikes">
         <button className="bg-gray-400 p-5 cursor-pointer">
           Add Bike Models
+        </button>
+      </Link>
+      <Link to="/admin/parts">
+        <button className="bg-gray-400 p-5 cursor-pointer">
+          Add Bike Parts
         </button>
       </Link>
     </div>

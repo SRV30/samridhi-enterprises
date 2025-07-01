@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 
 function Header() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { cart } = useSelector((state) => state.cart);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -133,24 +134,6 @@ function Header() {
     tap: { scale: 0.9 },
   };
 
-  const badgeVariants = {
-    initial: { scale: 0 },
-    animate: {
-      scale: 1,
-      transition: {
-        delay: 1,
-        type: "spring",
-        stiffness: 500,
-        damping: 15,
-      },
-    },
-    hover: {
-      scale: 1.2,
-      rotate: [0, 20, -20, 0],
-      transition: { duration: 0.3 },
-    },
-  };
-
   return (
     <motion.header
       variants={headerVariants}
@@ -182,7 +165,7 @@ function Header() {
             </motion.div>
             <Link
               to="/"
-              className="text-white text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent hover:from-blue-100 hover:to-white transition-all duration-300"
+              className="text-white text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-blue-100 bg-clip-text hover:from-blue-100 hover:to-white transition-all duration-300"
             >
               Samridhi Enterprises
             </Link>
@@ -235,6 +218,13 @@ function Header() {
                   transition={{ delay: 0.6 }}
                   whileHover={{ x: 10, scale: 1.02 }}
                 >
+                   <Link
+                    to="/products"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 text-white text-base font-semibold hover:text-blue-100 transition-colors duration-300 py-2 px-4 rounded-lg hover:bg-white/10"
+                  >
+                    Products
+                  </Link>
                   <Link
                     to="/admin/dashboard"
                     onClick={() => setIsMenuOpen(false)}
@@ -299,13 +289,14 @@ function Header() {
               <Link to="/cart" className="flex items-center">
                 <ShoppingCart className="text-white w-6 h-6" />
                 <motion.span
-                  variants={badgeVariants}
-                  initial="initial"
-                  animate="animate"
-                  whileHover="hover"
+                  key={cart.items.length} 
+                  initial={{ scale: 0.5, opacity: 0, y: -10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.5, opacity: 0, y: -10 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   className="absolute -top-2 -right-2 bg-gradient-to-r from-white to-blue-100 text-blue-500 text-xs font-bold px-2 py-1 rounded-full shadow-lg border border-white/20"
                 >
-                  1
+                  {cart.items.length}
                 </motion.span>
               </Link>
             </motion.div>
@@ -371,6 +362,13 @@ function Header() {
                       transition={{ delay: 0.6 }}
                       whileHover={{ x: 10, scale: 1.02 }}
                     >
+                      <Link
+                        to="/products"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center gap-3 text-white text-base font-semibold hover:text-blue-100 transition-colors duration-300 py-2 px-4 rounded-lg hover:bg-white/10"
+                      >
+                        Products
+                      </Link>
                       <Link
                         to="/admin/dashboard"
                         onClick={() => setIsMenuOpen(false)}
@@ -446,7 +444,7 @@ function Header() {
                     <div className="relative">
                       <ShoppingCart className="w-5 h-5" />
                       <span className="absolute -top-2 -right-2 bg-gradient-to-r from-white to-blue-100 text-blue-500 text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg">
-                        1
+                        {cart?.items?.length || 0}
                       </span>
                     </div>
                     Cart

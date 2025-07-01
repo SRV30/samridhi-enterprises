@@ -16,8 +16,20 @@ import Footer from "./components/Footer";
 import AdminBrandPage from "./pages/admin/AdminBrandPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBikeModelPage from "./pages/admin/AdminBikePage";
+import AdminPartPage from "./pages/admin/AdminPartPage";
+import SingleProductPage from "./pages/products/SingleProduct";
+import Cart from "./pages/Cart";
+import { useDispatch } from "react-redux";
+import { useEffect } from "react";
+import { fetchCart } from "./store/cart/cartSlice";
+import ProductsPage from "./pages/products/ProductsPage";
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchCart());
+  }, [dispatch]);
   return (
     <div className="">
       <ToastContainer
@@ -41,6 +53,8 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products/:id" element={<SingleProductPage />} />
         <Route
           path="/my-profile"
           element={
@@ -65,6 +79,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/cart"
+          element={
+            <ProtectedRoute>
+              <Cart />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/admin/dashboard"
@@ -82,11 +104,19 @@ function App() {
             </ProtectedRoute>
           }
         />
-          <Route
+        <Route
           path="/admin/bikes"
           element={
             <ProtectedRoute isAdmin={true}>
               <AdminBikeModelPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/parts"
+          element={
+            <ProtectedRoute isAdmin={true}>
+              <AdminPartPage />
             </ProtectedRoute>
           }
         />

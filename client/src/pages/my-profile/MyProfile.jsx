@@ -167,7 +167,7 @@ const MyProfile = () => {
                       <motion.img
                         src={profileImage}
                         alt="Profile"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-fit"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.4 }}
