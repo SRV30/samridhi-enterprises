@@ -63,7 +63,3 @@ GitHub: [@SRV30](https://github.com/SRV30)
 
 ---
 
-## 📄 License
-
-This project is private and intended for commercial use under freelance contract. Not open-source.
-
