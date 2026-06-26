@@ -11,6 +11,7 @@ import { getSingleDetail } from "./store/auth-slice/user";
 import SupportAssistant from "./components/SupportAssistant";
 import CompareTray from "./components/CompareTray";
 import Loader from "./extras/Loader";
+import ErrorBoundary from "./pages/components/ErrorBoundary";
 
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/auth/Login"));
@@ -75,6 +76,7 @@ function App() {
       <Header />
 
       <main id="main-content" tabIndex={-1}>
+      <ErrorBoundary>
       <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader /></div>}>
         <Routes>
         <Route path="/" element={<Home />} />
@@ -242,6 +244,7 @@ function App() {
         />
         </Routes>
       </Suspense>
+      </ErrorBoundary>
       </main>
 
       <Footer />
