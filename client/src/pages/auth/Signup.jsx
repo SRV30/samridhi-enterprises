@@ -119,6 +119,7 @@ const SignUp = () => {
             <motion.input
               variants={itemVariants}
               type="email"
+              autoComplete="email"
               placeholder="Your Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -138,6 +139,7 @@ const SignUp = () => {
             <motion.input
               variants={itemVariants}
               type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
               placeholder="Create Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

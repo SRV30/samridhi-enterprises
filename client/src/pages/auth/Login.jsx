@@ -114,6 +114,7 @@ const Login = () => {
             <input
               type="email"
               placeholder="Your Email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-12 pr-4 py-3 rounded-xl border border-blue-200 bg-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 placeholder-blue-300/70 text-blue-600 transition-all duration-300 text-sm sm:text-base"
@@ -125,6 +126,7 @@ const Login = () => {
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Your Password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full pl-12 pr-14 py-3 rounded-xl border border-blue-200 bg-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 placeholder-blue-300/70 text-blue-600 transition-all duration-300 text-sm sm:text-base"

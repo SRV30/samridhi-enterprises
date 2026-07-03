@@ -104,6 +104,7 @@ const ForgotPassword = () => {
               </motion.div>
               <motion.input
                 type="email"
+                autoComplete="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

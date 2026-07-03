@@ -152,6 +152,7 @@ const ResetPassword = () => {
                 <motion.input
                   type={showNewPassword ? "text" : "password"}
                   placeholder="New Password"
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full pl-12 pr-12 py-3 sm:py-4 border border-blue-400 rounded-lg bg-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-blue-500/50 text-blue-800 text-sm sm:text-base transition-all duration-300"
@@ -178,6 +179,7 @@ const ResetPassword = () => {
                 <motion.input
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm Password"
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full pl-12 pr-12 py-3 sm:py-4 border border-blue-400 rounded-lg bg-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-blue-500/50 text-blue-800 text-sm sm:text-base transition-all duration-300"
