@@ -12,7 +12,7 @@ import orderReceiptHtml from "../template/orderReceiptTemplate.js";
 import generateReceiptHTML from "../template/generateReceipt.js";
 import generateAdminNewOrderEmail from "../template/adminNewOrderTemplate.js";
 import notifyAdmins from "../utils/adminNotifier.js";
-import Stripe from "stripe";
+import { validateCheckoutPriceIntegrity } from "../utils/checkoutPriceValidator.js";
 
 const REQUIRED_ADDRESS_FIELDS = [
   "fullName",
