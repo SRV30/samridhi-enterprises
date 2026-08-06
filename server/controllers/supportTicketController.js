@@ -17,6 +17,8 @@ const VALID_PRIORITIES = ["Low", "Medium", "High"];
 
 // ── User: create a ticket ─────────────────────────────────────────────────
 // The opening description becomes the first message in the thread.
+import { TicketPriorityCalculator } from "../utils/ticketPriorityCalculator.js";
+
 export const createTicket = catchAsyncErrors(async (req, res, next) => {
   const { subject, category, priority, message } = req.body;
 
@@ -33,11 +35,19 @@ export const createTicket = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid priority", 400));
   }
 
+  const effectivePriority =
+    priority ||
+    TicketPriorityCalculator.calculateSuggestedPriority(
+      category || "Other",
+      subject,
+      message
+    );
+
   const ticket = await SupportTicket.create({
     user: req.user._id,
     subject: String(subject).trim(),
     category: category || "Other",
-    priority: priority || "Medium",
+    priority: effectivePriority,
     messages: [
       {
         sender: "USER",
@@ -60,7 +70,7 @@ export const createTicket = catchAsyncErrors(async (req, res, next) => {
     html: generateAdminNewTicketEmail(ticket, req.user),
   });
 
-  res.status(201).json({ success: true, ticket });
+  res.sendSuccess({ ticket }, 201);
 });
 
 // ── User: list own tickets ────────────────────────────────────────────────
@@ -68,7 +78,7 @@ export const getMyTickets = catchAsyncErrors(async (req, res) => {
   const tickets = await SupportTicket.find({ user: req.user._id }).sort({
     lastActivityAt: -1,
   });
-  res.status(200).json({ success: true, tickets });
+  res.sendSuccess({ tickets });
 });
 
 // ── User: get a single own ticket (with full thread) ──────────────────────
@@ -81,7 +91,7 @@ export const getMyTicket = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Not authorized to view this ticket", 403));
   }
 
-  res.status(200).json({ success: true, ticket });
+  res.sendSuccess({ ticket });
 });
 
 // ── User: add a message to own ticket ─────────────────────────────────────
@@ -113,7 +123,7 @@ export const addMessage = catchAsyncErrors(async (req, res, next) => {
   ticket.lastActivityAt = new Date();
   await ticket.save();
 
-  res.status(200).json({ success: true, ticket });
+  res.sendSuccess({ ticket });
 });
 
 // ── Admin: list all tickets (optional status/category filter) ─────────────
@@ -130,7 +140,7 @@ export const getAllTickets = catchAsyncErrors(async (req, res) => {
     .populate("user", "name email")
     .sort({ lastActivityAt: -1 });
 
-  res.status(200).json({ success: true, tickets });
+  res.sendSuccess({ tickets });
 });
 
 // ── Admin: get a single ticket (with full thread) ─────────────────────────
@@ -140,7 +150,7 @@ export const getTicketById = catchAsyncErrors(async (req, res, next) => {
     "name email"
   );
   if (!ticket) return next(new ErrorHandler("Ticket not found", 404));
-  res.status(200).json({ success: true, ticket });
+  res.sendSuccess({ ticket });
 });
 
 // ── Admin: update ticket status ───────────────────────────────────────────
@@ -158,10 +168,29 @@ export const updateTicketStatus = catchAsyncErrors(async (req, res, next) => {
   await ticket.save();
 
   const populated = await ticket.populate("user", "name email");
-  res.status(200).json({ success: true, ticket: populated });
+  res.sendSuccess({ ticket: populated });
 });
 
 // ── Admin: reply to a ticket ──────────────────────────────────────────────
+export const checkAndEscalateSLA = catchAsyncErrors(async (req, res, next) => {
+  const tickets = await SupportTicket.find({ status: { $in: ["Open", "In Progress"] }, priority: { $ne: "High" } });
+  let escalatedCount = 0;
+
+  for (const ticket of tickets) {
+    if (TicketPriorityCalculator.shouldEscalatePriority(ticket, 24)) {
+      ticket.priority = "High";
+      await ticket.save();
+      escalatedCount++;
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `SLA escalation evaluation completed. ${escalatedCount} ticket(s) escalated to High priority.`,
+    escalatedCount,
+  });
+});
+
 export const adminReply = catchAsyncErrors(async (req, res, next) => {
   const { body } = req.body;
   if (!body || !String(body).trim()) {
@@ -182,5 +211,5 @@ export const adminReply = catchAsyncErrors(async (req, res, next) => {
   await ticket.save();
 
   const populated = await ticket.populate("user", "name email");
-  res.status(200).json({ success: true, ticket: populated });
+  res.sendSuccess({ ticket: populated });
 });

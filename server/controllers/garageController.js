@@ -29,7 +29,7 @@ export const addVehicle = catchAsyncErrors(async (req, res, next) => {
     isDefault: existingCount === 0 ? true : !!isDefault,
   });
 
-  res.status(201).json({ success: true, vehicle });
+  res.sendSuccess({ vehicle }, 201);
 });
 
 export const getVehicles = catchAsyncErrors(async (req, res, next) => {
@@ -37,7 +37,7 @@ export const getVehicles = catchAsyncErrors(async (req, res, next) => {
     .populate("bikeModel", "name yearStart yearEnd engineType images")
     .sort({ isDefault: -1, createdAt: -1 });
 
-  res.status(200).json({ success: true, vehicles });
+  res.sendSuccess({ vehicles });
 });
 
 export const updateVehicle = catchAsyncErrors(async (req, res, next) => {
@@ -62,7 +62,7 @@ export const updateVehicle = catchAsyncErrors(async (req, res, next) => {
     { new: true, runValidators: true }
   );
 
-  res.status(200).json({ success: true, vehicle: updated });
+  res.sendSuccess({ vehicle: updated });
 });
 
 export const deleteVehicle = catchAsyncErrors(async (req, res, next) => {
@@ -91,7 +91,7 @@ export const deleteVehicle = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
-  res.status(200).json({ success: true, message: "Vehicle removed from garage" });
+  res.sendSuccess({ message: "Vehicle removed from garage" });
 });
 
 export const setDefaultVehicle = catchAsyncErrors(async (req, res, next) => {
@@ -106,5 +106,5 @@ export const setDefaultVehicle = catchAsyncErrors(async (req, res, next) => {
   vehicle.isDefault = true;
   await vehicle.save();
 
-  res.status(200).json({ success: true, vehicle });
+  res.sendSuccess({ vehicle });
 });

@@ -1,10 +1,8 @@
-import AuditLog from "../models/auditLogModel.js";
+import AuditLogCollector from "./auditLogCollector.js";
+import auditLogModel from "../models/auditLogModel.js";
 
 /**
- * Writes an admin/audit trail event.
- *
- * Intentionally "best effort": callers should not block the main request on
- * audit failures.
+ * Standard audit logger for domain action tracking
  */
 export const logAudit = async ({
   actorId,
@@ -13,20 +11,20 @@ export const logAudit = async ({
   entityType,
   entityId,
   metadata = {},
+  changes = null,
 }) => {
   try {
-    await AuditLog.create({
-      actorId,
-      actorRole,
+    return await auditLogModel.create({
+      actorId: actorId || null,
+      actorRole: actorRole || "System",
       action,
-      entityType,
-      entityId,
+      entityType: entityType || "General",
+      entityId: entityId ? String(entityId) : null,
+      changes: AuditLogCollector.sanitizePayload(changes),
       metadata,
     });
-  } catch (err) {
-    // Best-effort auditing: never block the main request.
-    console.error("Audit log failed:", err?.message || err);
+  } catch (error) {
+    console.error("Audit log error:", error.message);
+    return null;
   }
 };
-
-

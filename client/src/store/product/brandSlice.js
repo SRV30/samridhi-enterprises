@@ -8,11 +8,9 @@ export const addBrand = createAsyncThunk(
   "brand/add",
   async (formData, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const config = {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
         },
       };
       const response = await axiosInstance.post(
@@ -45,11 +43,9 @@ export const updateBrand = createAsyncThunk(
   "brand/update",
   async ({ id, formData }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const config = {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
         },
       };
       const response = await axiosInstance.put(
@@ -69,15 +65,8 @@ export const deleteBrand = createAsyncThunk(
   "brand/delete",
   async (id, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
       const response = await axiosInstance.delete(
-        `${API_URL}/delete/${id}`,
-        config
+        `${API_URL}/delete/${id}`
       );
       return { id, ...response.data };
     } catch (error) {

@@ -1,19 +1,21 @@
 import './styles/globals.css';
 import React, { Suspense, lazy, useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
+import MainLayout from "./layouts/MainLayout";
+import AuthLayout from "./layouts/AuthLayout";
+import AdminLayout from "./layouts/AdminLayout";
 import { ToastContainer } from "react-toastify";
 import ProtectedRoute from "./extras/ProtectedRoute";
 import { useDispatch } from "react-redux";
 import { fetchCart } from "./store/cart/cartSlice";
 import { fetchWishlist } from "./store/wishlist/wishlistSlice";
 import { getSingleDetail } from "./store/auth-slice/user";
-import SupportAssistant from "./components/SupportAssistant";
-import CompareTray from "./components/CompareTray";
 import Loader from "./extras/Loader";
 import SessionTimeoutHandler from "./components/SessionTimeoutHandler";
 import ScrollToTop from "./extras/ScrollToTop";
+import ScrollRestoration from "./extras/ScrollRestoration";
+import WhatsAppButton from "./extras/Whatsapp";
+import Header from "./components/Header";
 
 // --- Design Tokens & Theme Imports (#411) ---
 import { ThemeProvider } from './context/ThemeContext';
@@ -50,6 +52,7 @@ const AdminPaymentSettings = lazy(() => import("./pages/admin/AdminPaymentSettin
 const InventoryPage = lazy(() => import("./pages/admin/InventoryPage"));
 const CustomerPage = lazy(() => import("./pages/admin/CustomerPage"));
 const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
+const DesignSystemPreview = lazy(() => import("./pages/DesignSystemPreview"));
 const NotFoundPage = lazy(() => import("./extras/NotFoundPage"));
 
 function App() {
@@ -57,7 +60,7 @@ function App() {
 
   useEffect(() => {
     dispatch(fetchCart());
-    if (localStorage.getItem("token")) {
+    if (localStorage.getItem("user")) {
       dispatch(getSingleDetail());
       dispatch(fetchWishlist());
     }

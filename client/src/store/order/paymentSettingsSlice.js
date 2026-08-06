@@ -4,11 +4,9 @@ import axiosInstance from "@/api";
 const API_URL = "/api/payment-settings";
 
 const authConfig = (multipart = false) => {
-  const token = localStorage.getItem("token");
   return {
     headers: {
       ...(multipart ? { "Content-Type": "multipart/form-data" } : {}),
-      Authorization: `Bearer ${token}`,
     },
   };
 };

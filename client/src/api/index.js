@@ -41,7 +41,6 @@ axiosInstance.interceptors.response.use(
 
     if (tokenExpired || accountSuspended) {
       // Clear the stale session in either case.
-      localStorage.removeItem("token");
       localStorage.removeItem("user");
 
       // A suspended account always returns to /login. An expired token only

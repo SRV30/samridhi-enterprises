@@ -14,7 +14,7 @@ export const validatePassword = (password) => {
   const minLength = 8;
   const maxLength = 128;
 
-  if (!password || password.length < minLength || password.length > maxLength) {
+  if (!password || typeof password !== "string" || password.length < minLength || password.length > maxLength) {
     return {
       isValid: false,
       message: `Password must be between ${minLength} and ${maxLength} characters long.`,

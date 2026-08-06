@@ -171,12 +171,18 @@ const BannerProduct = () => {
             >
               Shop Now
             </Link>
-            <Link
-              to="/"
+            <a
+              href="#top-brands"
+              onClick={(e) => {
+                e.preventDefault();
+                document
+                  .getElementById("top-brands")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
               className="px-5 sm:px-7 py-2 sm:py-2.5 bg-white/25 hover:bg-white/35 text-white rounded-full text-sm"
             >
               Browse Brands
-            </Link>
+            </a>
           </motion.div>
         </div>
 

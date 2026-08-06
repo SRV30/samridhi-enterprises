@@ -22,6 +22,18 @@ import auth from "../middleware/auth.js";
 import upload from "../middleware/multer.js";
 import admin from "../middleware/Admin.js";
 import { createAuthOtpLimiter } from "../middleware/rateLimiter.js";
+import validateSchema from "../middleware/validateSchema.js";
+import {
+  registerSchema,
+  loginSchema,
+  otpVerifySchema,
+  resendOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  updatePasswordSchema,
+  updateUserRoleSchema,
+  updateUserStatusSchema,
+} from "../validators/authSchemas.js";
 
 const userRouter = express.Router();
 
@@ -35,28 +47,25 @@ const authOtpIpLimit = createAuthOtpLimiter({
   message: "Too many requests. Please try again later.",
 });
 
-userRouter.post("/register", registerUser);
+userRouter.post("/register", authOtpIpLimit, validateSchema(registerSchema), registerUser);
 
+userRouter.post("/verify-email", authOtpIpLimit, validateSchema(otpVerifySchema), verifyEmailOtp);
 
-userRouter.post("/verify-email", verifyEmailOtp);
+userRouter.post("/resend-otp", authOtpIpLimit, validateSchema(resendOtpSchema), resendOtp);
 
-userRouter.post("/resend-otp", authOtpIpLimit, resendOtp);
-
-userRouter.post("/login", authOtpIpLimit, loginUser);
-
+userRouter.post("/login", authOtpIpLimit, validateSchema(loginSchema), loginUser);
 
 userRouter.get("/logout", logoutUser);
 
-userRouter.put("/upload-avatar", upload.single("avatar"), auth, uploadAvatar);
+userRouter.put("/upload-avatar", auth, upload.single("avatar"), uploadAvatar);
 
-userRouter.put("/update/password", auth, updatePassword);
+userRouter.put("/update/password", auth, validateSchema(updatePasswordSchema), updatePassword);
 
-userRouter.put("/forgot-password", authOtpIpLimit, forgotPassword);
+userRouter.put("/forgot-password", authOtpIpLimit, validateSchema(forgotPasswordSchema), forgotPassword);
 
-userRouter.put("/verify-otp", authOtpIpLimit, verifyOtp);
+userRouter.put("/verify-otp", authOtpIpLimit, validateSchema(otpVerifySchema), verifyOtp);
 
-
-userRouter.put("/reset-password", authOtpIpLimit, resetPassword);
+userRouter.put("/reset-password", authOtpIpLimit, validateSchema(resetPasswordSchema), resetPassword);
 
 userRouter.get("/me", auth, getUserDetails);
 
@@ -71,10 +80,12 @@ userRouter.get("/admin/get", auth, admin, getAllUsers);
 
 userRouter.get("/admin/get/:id", auth, admin, getSingleUser);
 
-userRouter.put("/admin/update", auth, admin, updateUserRole);
+import { auditLoggerMiddleware } from "../middleware/auditLoggerMiddleware.js";
 
-userRouter.delete("/admin/delete/:id", auth, admin, deleteUser);
+userRouter.put("/admin/update", auth, admin, auditLoggerMiddleware("user", "UPDATE_ROLE"), updateUserRole);
 
-userRouter.patch("/admin/:id/status", auth, admin, updateUserStatus);
+userRouter.delete("/admin/delete/:id", auth, admin, auditLoggerMiddleware("user", "DELETE_USER"), deleteUser);
+
+userRouter.patch("/admin/:id/status", auth, admin, auditLoggerMiddleware("user", "UPDATE_STATUS"), updateUserStatus);
 
 export default userRouter;

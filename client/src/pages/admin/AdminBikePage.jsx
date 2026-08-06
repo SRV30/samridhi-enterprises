@@ -10,10 +10,16 @@ import {
 } from "../../store/product/bikeSlice";
 import { fetchBrands } from "../../store/product/brandSlice";
 import { toast } from "react-toastify";
-// eslint-disable-next-line no-unused-vars
-import { motion, AnimatePresence } from "framer-motion";
 import ConfirmationModal from "../../extras/ConfirmationModal";
-import Loader from "../../extras/Loader";
+import {
+  AdminPageHeader,
+  AdminCard,
+  AdminTable,
+  AdminBadge,
+  AdminSearchInput,
+} from "@/components/admin/AdminUI";
+import { Button, Input, Select } from "@/components/ui";
+import { Car, Edit2, Trash2, Image as ImageIcon } from "lucide-react";
 
 export default function AdminBikeModelPage() {
   const dispatch = useDispatch();
@@ -38,7 +44,6 @@ export default function AdminBikeModelPage() {
   const [errors, setErrors] = useState({});
   const [search, setSearch] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
-  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     dispatch(fetchBikeModels());
@@ -47,8 +52,9 @@ export default function AdminBikeModelPage() {
 
   useEffect(() => {
     if (success) {
-      toast.success("Operation successful");
+      toast.success("Operation successful!");
       dispatch(clearSuccess());
+      resetForm();
     }
     if (error) {
       toast.error(error);
@@ -58,79 +64,27 @@ export default function AdminBikeModelPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
     const fieldErrors = {};
     if (!name.trim()) fieldErrors.name = "Model name is required";
-    if (!brandId) fieldErrors.brandId = "Please select a brand";
-    if (yearStart && yearEnd && Number(yearStart) > Number(yearEnd)) {
-      fieldErrors.yearEnd = "End year must be after start year";
-    }
-    if (!editId && !image) fieldErrors.image = "Image is required";
+    if (!brandId) fieldErrors.brandId = "Brand is required";
     setErrors(fieldErrors);
     if (Object.keys(fieldErrors).length > 0) return;
 
     const formData = new FormData();
     formData.append("name", name);
     formData.append("brand", brandId);
-    formData.append("yearStart", yearStart);
-    formData.append("yearEnd", yearEnd);
-    formData.append("engineType", engineType);
+    if (yearStart) formData.append("yearStart", yearStart);
+    if (yearEnd) formData.append("yearEnd", yearEnd);
+    if (engineType) formData.append("engineType", engineType);
 
     if (editId) {
       if (image) formData.append("image", image);
-      dispatch(updateBikeModel({ id: editId, formData }));
+      dispatch(updateBikeModel({ id: editId, updatedData: formData }));
     } else {
-      if (!image) return toast.warn("Image is required!");
-      formData.append("image", image);
+      if (image) formData.append("image", image);
       dispatch(addBikeModel(formData));
     }
-
-    resetForm();
-  };
-
-  const handleEdit = (model) => {
-    if (!model || !model._id) {
-      toast.error("Invalid model data");
-      return;
-    }
-    setName(model.name || "");
-    setBrandId(model.brand?._id || "");
-    setYearStart(model.yearStart ?? "");
-    setYearEnd(model.yearEnd ?? "");
-    setEngineType(model.engineType || "");
-    setEditId(model._id);
-    setImagePreview(
-      Array.isArray(model.images) &&
-        model.images.length > 0 &&
-        model.images[0]?.url
-        ? model.images[0].url
-        : null
-    );
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setImage(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result);
-      reader.readAsDataURL(file);
-    } else {
-      setImagePreview(null);
-    }
-  };
-
-  const confirmDelete = (id) => {
-    if (!id) return;
-    setSelectedIdToDelete(id);
-    setShowConfirm(true);
-  };
-
-  const handleConfirmDelete = () => {
-    dispatch(deleteBikeModel(selectedIdToDelete));
-    setShowConfirm(false);
-    setSelectedIdToDelete(null);
   };
 
   const resetForm = () => {
@@ -142,418 +96,243 @@ export default function AdminBikeModelPage() {
     setImage(null);
     setEditId(null);
     setImagePreview(null);
-    setShowForm(false);
     setErrors({});
   };
 
-  const sortedBrands = brands
-    .map((brand) => ({ ...brand, name: brand.name.toUpperCase() }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  const filteredModels = bikeModels
-    .filter(
-      (model) =>
-        model &&
-        model._id &&
-        typeof model === "object" &&
-        (model.name.toLowerCase().includes(search.toLowerCase()) ||
-          model.brand?.name.toLowerCase().includes(search.toLowerCase())) &&
-        (!brandFilter || model.brand?._id === brandFilter)
-    )
-    .map((model) => ({
-      ...model,
-      name: model.name.toUpperCase(),
-      brand: model.brand
-        ? { ...model.brand, name: model.brand.name.toUpperCase() }
-        : { _id: "", name: "N/A" },
-    }));
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+  const handleEdit = (model) => {
+    setEditId(model._id);
+    setName(model.name);
+    setBrandId(model.brand?._id || model.brand || "");
+    setYearStart(model.yearStart || "");
+    setYearEnd(model.yearEnd || "");
+    setEngineType(model.engineType || "");
+    setImagePreview(model.image?.url || null);
+    setImage(null);
   };
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 50, scale: 0.9 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { type: "spring", stiffness: 100, damping: 12 },
-    },
-    hover: {
-      y: -8,
-      scale: 1.02,
-      transition: { type: "spring", stiffness: 400, damping: 10 },
-    },
+  const confirmDelete = (id) => {
+    setSelectedIdToDelete(id);
+    setShowConfirm(true);
   };
 
-  const formVariants = {
-    hidden: { opacity: 0, height: 0, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      height: "auto",
-      scale: 1,
-      transition: { duration: 0.3, ease: "easeOut" },
-    },
+  const handleDelete = () => {
+    dispatch(deleteBikeModel(selectedIdToDelete));
+    setShowConfirm(false);
+    setSelectedIdToDelete(null);
   };
+
+  const filteredModels = bikeModels.filter((m) => {
+    const matchesSearch = m.name?.toLowerCase().includes(search.toLowerCase());
+    const matchesBrand = !brandFilter || (m.brand?._id || m.brand) === brandFilter;
+    return matchesSearch && matchesBrand;
+  });
+
+  const columns = [
+    { header: "Model Details" },
+    { header: "Brand" },
+    { header: "Compatibility" },
+    { header: "Actions", className: "text-right" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-8 lg:mb-12"
-        >
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 bg-clip-text text-transparent mb-4">
-            Bike Model Studio
-          </h1>
-          <p className="text-slate-600 text-lg sm:text-xl max-w-2xl mx-auto">
-            Manage your bike models with style and precision
-          </p>
-        </motion.div>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+      <AdminPageHeader
+        title="Bike Models Management"
+        subtitle="Configure bike models, brand associations, production year ranges, and engine types."
+        icon={<Car className="w-6 h-6" />}
+        badge={`${filteredModels.length} Models`}
+      />
 
-        <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:col-span-8"
-          >
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  placeholder="Search models or brands..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-white/80 backdrop-blur-sm border border-blue-400 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-400/30 focus:border-blue-400 transition-all duration-300 text-slate-700 placeholder-slate-400 shadow-lg"
-                />
-                <svg
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-              <select
-                value={brandFilter}
-                onChange={(e) => setBrandFilter(e.target.value)}
-                className="px-4 py-3 bg-white/90 backdrop-blur-sm border border-blue-500 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-800/30 focus:border-blue-800 transition-all duration-300 appearance-none cursor-pointer text-slate-700"
-              >
-                <option value="">All Brands</option>
-                {sortedBrands.map((b) => (
-                  <option key={b._id} value={b._id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowForm(!showForm)}
-                className="px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 whitespace-nowrap"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-                Add Model
-              </motion.button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Form Column */}
+        <AdminCard
+          title={editId ? "Edit Bike Model" : "Add New Bike Model"}
+          subtitle="Define model attributes and compatible spec ranges."
+          className="lg:col-span-1 h-fit"
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Model Name"
+              placeholder="e.g., Splendor Plus, CB Shine, Pulsar 150"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              error={errors.name}
+            />
+
+            <Select
+              label="Parent Brand"
+              value={brandId}
+              onChange={(e) => setBrandId(e.target.value)}
+              options={[
+                { value: "", label: "-- Select Brand --" },
+                ...brands.map((b) => ({ value: b._id, label: b.name })),
+              ]}
+              error={errors.brandId}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Year Start"
+                type="number"
+                placeholder="2015"
+                value={yearStart}
+                onChange={(e) => setYearStart(e.target.value)}
+              />
+              <Input
+                label="Year End"
+                type="number"
+                placeholder="2024"
+                value={yearEnd}
+                onChange={(e) => setYearEnd(e.target.value)}
+              />
             </div>
 
-            <AnimatePresence>
-              {showForm && (
-                <motion.div
-                  variants={formVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="hidden"
-                  className="mb-8 overflow-hidden"
-                >
-                  <div className="bg-white/90 backdrop-blur-sm p-6 lg:p-8 rounded-3xl shadow-xl border border-blue-100">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      <div className="grid sm:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Model Name
-                          </label>
-                          <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => { setName(e.target.value); setErrors((prev) => ({ ...prev, name: "" })); }}
-                            placeholder="Enter model name"
-                            className={`w-full px-4 py-3 bg-slate-50 border rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-400/30 focus:border-blue-400 transition-all duration-300 ${errors.name ? "border-red-400" : "border-blue-200"}`}
-                          />
-                          {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Brand
-                          </label>
-                          <select
-                            value={brandId}
-                            onChange={(e) => { setBrandId(e.target.value); setErrors((prev) => ({ ...prev, brandId: "" })); }}
-                            className={`w-full px-4 py-3 bg-slate-50 border rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-400/30 focus:border-blue-400 transition-all duration-300 appearance-none cursor-pointer ${errors.brandId ? "border-red-400" : "border-blue-200"}`}
-                          >
-                            <option value="">Select brand</option>
-                            {sortedBrands.map((b) => (
-                              <option key={b._id} value={b._id}>
-                                {b.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
+            <Input
+              label="Engine Displacement"
+              placeholder="e.g., 125cc, 150cc"
+              value={engineType}
+              onChange={(e) => setEngineType(e.target.value)}
+            />
 
-                      <div className="grid sm:grid-cols-3 gap-6">
-                        <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Year From{" "}
-                            <span className="text-slate-400 font-normal">
-                              (optional)
-                            </span>
-                          </label>
-                          <input
-                            type="number"
-                            value={yearStart}
-                            onChange={(e) => setYearStart(e.target.value)}
-                            placeholder="e.g. 2015"
-                            min="1900"
-                            className="w-full px-4 py-3 bg-slate-50 border border-blue-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-400/30 focus:border-blue-400 transition-all duration-300"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Year To{" "}
-                            <span className="text-slate-400 font-normal">
-                              (optional)
-                            </span>
-                          </label>
-                          <input
-                            type="number"
-                            value={yearEnd}
-                            onChange={(e) => { setYearEnd(e.target.value); setErrors((prev) => ({ ...prev, yearEnd: "" })); }}
-                            placeholder="e.g. 2024"
-                            min="1900"
-                            className={`w-full px-4 py-3 bg-slate-50 border rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-400/30 focus:border-blue-400 transition-all duration-300 ${errors.yearEnd ? "border-red-400" : "border-blue-200"}`}
-                          />
-                          {errors.yearEnd && <p className="mt-1 text-sm text-red-500">{errors.yearEnd}</p>}
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Engine Type{" "}
-                            <span className="text-slate-400 font-normal">
-                              (optional)
-                            </span>
-                          </label>
-                          <input
-                            type="text"
-                            value={engineType}
-                            onChange={(e) => setEngineType(e.target.value)}
-                            placeholder="e.g. 150cc"
-                            className="w-full px-4 py-3 bg-slate-50 border border-blue-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-400/30 focus:border-blue-400 transition-all duration-300"
-                          />
-                        </div>
-                      </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                Model Image
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  setImage(file);
+                  if (file) setImagePreview(URL.createObjectURL(file));
+                }}
+                className="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-950 dark:file:text-blue-300 hover:file:bg-blue-100 transition-all"
+              />
+            </div>
 
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Image
-                        </label>
-                        <input
-                          key={editId || "I"}
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => { handleImageChange(e); setErrors((prev) => ({ ...prev, image: "" })); }}
-                          className={`w-full px-4 py-3 bg-slate-50 border rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-400/30 focus:border-blue-400 transition-all duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-100 file:text-blue-700 file:cursor-pointer hover:file:bg-blue-200 ${errors.image ? "border-red-400" : "border-blue-200"}`}
-                        />
-                        {errors.image && <p className="mt-1 text-sm text-red-500">{errors.image}</p>}
-                      </div>
+            {imagePreview && (
+              <div className="w-24 h-24 rounded-xl border border-gray-200 dark:border-gray-800 p-2 flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            )}
 
-                      {imagePreview && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="flex justify-center"
-                        >
-                          <img
-                            src={imagePreview}
-                            alt="preview"
-                            className="w-32 h-32 object-fit rounded-2xl shadow-lg border-4 border-blue-100"
-                          />
-                        </motion.div>
-                      )}
-
-                      <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          type="submit"
-                          disabled={loading}
-                          className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {loading
-                            ? "Processing..."
-                            : editId
-                            ? "Update Model"
-                            : "Create Model"}
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          type="button"
-                          onClick={resetForm}
-                          className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-all duration-300 border border-slate-200"
-                        >
-                          Cancel
-                        </motion.button>
-                      </div>
-                    </form>
-                  </div>
-                </motion.div>
+            <div className="flex items-center gap-2 pt-2">
+              <Button type="submit" disabled={loading} className="w-full">
+                {editId ? "Update Model" : "Create Model"}
+              </Button>
+              {editId && (
+                <Button variant="outline" onClick={resetForm} type="button">
+                  Cancel
+                </Button>
               )}
-            </AnimatePresence>
-          </motion.div>
-        </div>
+            </div>
+          </form>
+        </AdminCard>
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
-        >
-          <AnimatePresence>
-            {loading ? (
-              <Loader />
-            ) : filteredModels.length > 0 ? (
-              filteredModels.map((model, index) => (
-                <motion.div
-                  key={model._id}
-                  variants={cardVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="hidden"
-                  whileHover="hover"
-                  transition={{ delay: index * 0.05 }}
-                  className="group bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-lg hover:shadow-2xl border border-blue-100 cursor-pointer transition-all duration-300"
-                >
-                  <div className="text-center">
-                    <div className="relative mb-4 mx-auto w-20 h-20 sm:w-24 sm:h-24">
-                      {Array.isArray(model.images) &&
-                      model.images.length > 0 &&
-                      model.images[0]?.url ? (
+        {/* Table Column */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <AdminSearchInput
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search bike models..."
+              className="w-full sm:w-64"
+            />
+            <select
+              value={brandFilter}
+              onChange={(e) => setBrandFilter(e.target.value)}
+              className="w-full sm:w-48 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            >
+              <option value="">All Brands</option>
+              {brands.map((b) => (
+                <option key={b._id} value={b._id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <AdminTable
+            columns={columns}
+            data={filteredModels}
+            loading={loading}
+            emptyMessage="No bike models match criteria."
+            renderRow={(model) => (
+              <tr
+                key={model._id}
+                className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors"
+              >
+                <td className="px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-800 p-1 flex items-center justify-center shrink-0">
+                      {model.image?.url ? (
                         <img
-                          src={model.images[0].url}
+                          src={model.image.url}
                           alt={model.name}
-                          className="w-full h-full object-fit rounded-2xl shadow-lg border-2 border-blue-100 group-hover:border-blue-300 transition-all duration-300"
+                          className="max-h-full max-w-full object-contain"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center text-3xl border-2 border-blue-100 group-hover:border-blue-300 transition-all duration-300">
-                          🏍️
-                        </div>
+                        <ImageIcon className="w-5 h-5 text-gray-400" />
                       )}
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                        <svg
-                          className="w-3 h-3 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      </div>
                     </div>
-
-                    <h2 className="font-bold text-slate-800 text-lg mb-1 group-hover:text-blue-600 transition-colors duration-300">
+                    <span className="font-bold text-gray-900 dark:text-white text-sm">
                       {model.name}
-                    </h2>
-                    <p className="text-sm text-slate-500 mb-1 font-medium">
-                      {model.brand?.name}
-                    </p>
-                    {(model.yearStart || model.yearEnd || model.engineType) && (
-                      <p className="text-xs text-slate-400 mb-4">
-                        {model.yearStart || model.yearEnd
-                          ? `${model.yearStart || "—"}–${model.yearEnd || "—"}`
-                          : ""}
-                        {model.engineType ? ` • ${model.engineType}` : ""}
-                      </p>
-                    )}
-
-                    <div className="flex justify-center gap-3">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleEdit(model)}
-                        className="px-4 py-2 text-sm bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors duration-300 font-medium shadow-md"
-                      >
-                        Edit
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => confirmDelete(model._id)}
-                        className="px-4 py-2 text-sm bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors duration-300 font-medium shadow-md"
-                      >
-                        Delete
-                      </motion.button>
-                    </div>
+                    </span>
                   </div>
-                </motion.div>
-              ))
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="col-span-full text-center py-20"
-              >
-                <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-xl font-semibold text-slate-600 mb-2">
-                  No models found
-                </h3>
-                <p className="text-slate-400">
-                  Try adjusting your search criteria
-                </p>
-              </motion.div>
+                </td>
+                <td className="px-4 py-3.5">
+                  <AdminBadge variant="neutral">
+                    {model.brand?.name || "Unassigned"}
+                  </AdminBadge>
+                </td>
+                <td className="px-4 py-3.5 text-xs text-gray-600 dark:text-gray-300">
+                  {model.yearStart || model.yearEnd ? (
+                    <div>
+                      Years: {model.yearStart || "Any"} - {model.yearEnd || "Present"}
+                    </div>
+                  ) : (
+                    <div>Years: All</div>
+                  )}
+                  {model.engineType && (
+                    <div className="text-gray-400 font-medium">
+                      Engine: {model.engineType}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3.5 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => handleEdit(model)}
+                      className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg transition-colors"
+                      title="Edit Model"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => confirmDelete(model._id)}
+                      className="p-1.5 text-gray-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors"
+                      title="Delete Model"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
             )}
-          </AnimatePresence>
-        </motion.div>
+          />
+        </div>
       </div>
 
       <ConfirmationModal
         isOpen={showConfirm}
         onClose={() => setShowConfirm(false)}
-        onConfirm={handleConfirmDelete}
+        onConfirm={handleDelete}
         title="Delete Bike Model"
-        message="Are you sure you want to delete this model? This action cannot be undone."
+        message="Are you sure you want to delete this model? Associated parts compatibility records may be affected."
       />
     </div>
   );

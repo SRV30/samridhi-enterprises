@@ -6,7 +6,7 @@ const WhatsAppButton = () => {
       href="https://wa.me/918434343401"
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-green-700 text-white rounded-full shadow-2xl hover:shadow-3xl transition-transform transform hover:scale-110 border-2 border-green-400"
+      className="fixed bottom-6 right-6 z-[9999] flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-green-700 text-white rounded-full shadow-2xl hover:shadow-3xl transition-transform transform hover:scale-110 border-2 border-green-400"
       aria-label="Chat on WhatsApp"
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}

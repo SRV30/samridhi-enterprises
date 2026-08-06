@@ -15,6 +15,11 @@ import { validateCoupon, clearAppliedCoupon, clearCouponError } from "../store/o
 import { getMyAddresses } from "../store/order/addressSlice";
 import { Tag, X, MapPin } from "lucide-react";
 import Loader from "../extras/Loader";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import StripePaymentForm from "../components/StripePaymentForm";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
 
 const Checkout = () => {
   const dispatch = useDispatch();
@@ -23,7 +28,7 @@ const Checkout = () => {
   const { cart } = useSelector((state) => state.cart);
   const { user } = useSelector((state) => state.auth);
   const { settings } = useSelector((state) => state.paymentSettings);
-  const { loading, error, success, lastCreatedOrder } = useSelector(
+  const { loading, error, success, lastCreatedOrder, clientSecret } = useSelector(
     (state) => state.order
   );
   const { applied: appliedCoupon, loading: couponLoading, error: couponError } = useSelector(
@@ -42,9 +47,6 @@ const Checkout = () => {
     pincode: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("COD");
-  const [screenshot, setScreenshot] = useState(null);
-  const [screenshotPreview, setScreenshotPreview] = useState("");
-  const [upiReference, setUpiReference] = useState("");
 
   useEffect(() => {
     dispatch(fetchCart());
@@ -91,16 +93,16 @@ const Checkout = () => {
   // On a successful order, sync the (now empty) cart and go to order history.
   useEffect(() => {
     if (success && lastCreatedOrder) {
-      toast.success(
-        paymentMethod === "COD"
-          ? "Order placed successfully!"
-          : "Order placed. Payment is pending verification."
-      );
-      dispatch(fetchCart());
-      dispatch(clearOrderSuccess());
-      navigate("/my-orders");
+      if (paymentMethod === "COD") {
+        toast.success("Order placed successfully!");
+        dispatch(fetchCart());
+        dispatch(clearOrderSuccess());
+        navigate("/my-orders");
+      } else if (clientSecret) {
+        dispatch(fetchCart());
+      }
     }
-  }, [success, lastCreatedOrder, paymentMethod, dispatch, navigate]);
+  }, [success, lastCreatedOrder, paymentMethod, clientSecret, dispatch, navigate]);
 
   const total = useMemo(() => cart?.total || 0, [cart]);
   const discount = useMemo(() => {
@@ -139,13 +141,6 @@ const Checkout = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleScreenshot = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setScreenshot(file);
-    setScreenshotPreview(URL.createObjectURL(file));
-  };
-
   const handlePlaceOrder = () => {
     // Required address fields
     const required = ["fullName", "phone", "addressLine", "city", "pincode"];
@@ -154,8 +149,9 @@ const Checkout = () => {
       toast.error("Please fill all required address fields");
       return;
     }
-    if (paymentMethod === "Online" && !screenshot) {
-      toast.error("Please upload your payment screenshot");
+
+    if (!/^\d{10}$/.test(form.phone)) {
+      toast.error("Please enter a valid 10-digit phone number");
       return;
     }
 
@@ -167,17 +163,28 @@ const Checkout = () => {
     fd.append("state", form.state);
     fd.append("pincode", form.pincode);
     fd.append("paymentMethod", paymentMethod);
-    fd.append("upiReference", upiReference);
     if (discount > 0 && appliedCoupon?.code) {
       fd.append("couponCode", appliedCoupon.code);
-    }
-    if (paymentMethod === "Online" && screenshot) {
-      fd.append("paymentScreenshot", screenshot);
     }
     dispatch(createOrder(fd));
   };
 
   if (loading) return <Loader />;
+
+  if (clientSecret) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 pt-28 pb-16 px-4">
+        <div className="max-w-md mx-auto bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
+            Complete Payment
+          </h2>
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <StripePaymentForm clientSecret={clientSecret} />
+          </Elements>
+        </div>
+      </div>
+    );
+  }
 
   if (!cart || !cart.items || cart.items.length === 0) {
     return (
@@ -363,65 +370,13 @@ const Checkout = () => {
               </div>
 
               {paymentMethod === "Online" && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-5">
-                  <div className="flex flex-col sm:flex-row gap-6 items-start">
-                    <div className="flex-shrink-0">
-                      {settings?.qrImage?.url ? (
-                        <img
-                          src={settings.qrImage.url}
-                          alt="UPI QR Code"
-                          className="w-44 h-44 object-contain rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2"
-                        />
-                      ) : (
-                        <div className="w-44 h-44 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-center text-sm text-gray-400 dark:text-gray-500 p-3">
-                          QR code not configured yet
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Pay to UPI ID</p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 break-all">
-                        {settings?.upiId || "Not configured"}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Scan the QR or pay to the UPI ID above, then upload a
-                        screenshot of the successful payment below.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                      UPI Reference / Transaction ID (optional)
-                    </label>
-                    <input
-                      value={upiReference}
-                      onChange={(e) => setUpiReference(e.target.value)}
-                      className={inputClass}
-                      placeholder="e.g. 4012XXXXXX"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                      Payment Screenshot *
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleScreenshot}
-                      className="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-500 file:text-white file:font-semibold hover:file:bg-blue-600"
-                    />
-                    {screenshotPreview && (
-                      <img
-                        src={screenshotPreview}
-                        alt="Payment screenshot preview"
-                        className="mt-3 w-40 h-40 object-cover rounded-xl border border-gray-200 dark:border-gray-700"
-                      />
-                    )}
-                  </div>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                  <p className="text-gray-600 dark:text-gray-300">
+                    You will be securely redirected to our payment gateway to complete your transaction after clicking Place Order.
+                  </p>
                 </div>
               )}
+
             </div>
           </div>
 
@@ -442,7 +397,7 @@ const Checkout = () => {
                       <span className="text-gray-400 dark:text-gray-500">x{item.quantity}</span>
                     </span>
                     <span className="font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                      ₹{item.price?.toLocaleString()}
+                      ₹{((item.price || 0) * (item.quantity || 1)).toLocaleString()}
                     </span>
                   </div>
                 ))}

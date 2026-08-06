@@ -5,11 +5,11 @@ const auditLogSchema = new mongoose.Schema(
     actorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
     },
     actorRole: {
       type: String,
-      required: true,
+      default: "User",
     },
     action: {
       type: String,
@@ -17,11 +17,27 @@ const auditLogSchema = new mongoose.Schema(
     },
     entityType: {
       type: String,
-      required: true,
+      default: "General",
     },
     entityId: {
       type: String,
-      required: true,
+      default: null,
+    },
+    targetResource: {
+      type: String,
+      default: null,
+    },
+    ipAddress: {
+      type: String,
+      default: "127.0.0.1",
+    },
+    userAgent: {
+      type: String,
+      default: "Unknown",
+    },
+    changes: {
+      type: Object,
+      default: null,
     },
     metadata: {
       type: Object,
@@ -32,4 +48,3 @@ const auditLogSchema = new mongoose.Schema(
 );
 
 export default mongoose.model("AuditLog", auditLogSchema);
-

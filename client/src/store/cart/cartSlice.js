@@ -15,20 +15,13 @@ export const addToCart = createAsyncThunk(
   "cart/addToCart",
   async ({ partId, quantity }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      if (!localStorage.getItem("user")) {
         return await upsertGuestCartItem({ partId, quantity });
       }
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
       const response = await axiosInstance.post(
         `${API_URL}`,
-        { partId, quantity },
-        config
+        { partId, quantity }
       );
       console.log("addToCart response:", response.data);
       return response.data.cart;
@@ -42,18 +35,12 @@ export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      if (!localStorage.getItem("user")) {
         return { success: true, warnings: [], cart: getGuestCart() };
       }
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-      const syncResult = await syncGuestCart(token);
-      const response = await axiosInstance.get(`${API_URL}`, config);
+      const syncResult = await syncGuestCart();
+      const response = await axiosInstance.get(`${API_URL}`);
       console.log("fetchCart response:", response.data);
       return {
         ...response.data,
@@ -70,20 +57,13 @@ export const updateCartItem = createAsyncThunk(
   "cart/updateCartItem",
   async ({ partId, quantity }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      if (!localStorage.getItem("user")) {
         return updateGuestCartItem({ partId, quantity });
       }
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
       const response = await axiosInstance.put(
         `${API_URL}/${partId}`,
-        { quantity },
-        config
+        { quantity }
       );
       console.log("updateCartItem response:", response.data);
       return response.data.cart;
@@ -97,19 +77,12 @@ export const removeFromCart = createAsyncThunk(
   "cart/removeFromCart",
   async (partId, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      if (!localStorage.getItem("user")) {
         return removeGuestCartItem(partId);
       }
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
       const response = await axiosInstance.delete(
-        `${API_URL}/${partId}`,
-        config
+        `${API_URL}/${partId}`
       );
       console.log("removeFromCart response:", response.data);
       return response.data.cart;
@@ -123,17 +96,11 @@ export const clearCart = createAsyncThunk(
   "cart/clearCart",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      if (!localStorage.getItem("user")) {
         return resetGuestCart();
       }
 
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-      const response = await axiosInstance.delete(`${API_URL}/clear`, config);
+      const response = await axiosInstance.delete(`${API_URL}/clear`);
       console.log("clearCart response:", response.data);
       return response.data.cart;
     } catch (error) {

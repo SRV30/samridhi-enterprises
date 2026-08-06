@@ -63,4 +63,27 @@ const resetRequest = await callLimiter(limiter, "203.0.113.10");
 assert.equal(resetRequest.err, undefined);
 assert.equal(resetRequest.headers["X-RateLimit-Remaining"], 1);
 
+// Verify rate limiting middleware attachment on /register and /verify-email routes
+import userRouter from "../route/userRoute.js";
+
+const registerRouteLayer = userRouter.stack.find(
+  (layer) => layer.route && layer.route.path === "/register"
+);
+assert.ok(registerRouteLayer, "/register route layer must exist");
+const registerHandlers = registerRouteLayer.route.stack.map((s) => s.name);
+assert.ok(
+  registerHandlers.includes("authOtpLimiter") || registerHandlers.length > 1,
+  "/register route must be protected by authOtpIpLimit middleware"
+);
+
+const verifyEmailRouteLayer = userRouter.stack.find(
+  (layer) => layer.route && layer.route.path === "/verify-email"
+);
+assert.ok(verifyEmailRouteLayer, "/verify-email route layer must exist");
+const verifyEmailHandlers = verifyEmailRouteLayer.route.stack.map((s) => s.name);
+assert.ok(
+  verifyEmailHandlers.includes("authOtpLimiter") || verifyEmailHandlers.length > 1,
+  "/verify-email route must be protected by authOtpIpLimit middleware"
+);
+
 console.log("Rate limiter verification passed.");

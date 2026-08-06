@@ -110,10 +110,11 @@ const ProductsPage = () => {
     dispatch(fetchBikeModels());
   }, [dispatch]);
 
-  // Keep the search box in sync with the `?search=` query param so searches
-  // started from the global header search bar populate this page.
+ // Keep the brand filter in sync with `?brand=` so links from the
+  // homepage's Top Brands cards land on a pre-filtered products page.
   useEffect(() => {
-    setSearchTerm(searchParams.get("search") || "");
+    const brandParam = searchParams.get("brand");
+    if (brandParam) setFilterBrand(brandParam);
   }, [searchParams]);
 
   useEffect(() => {

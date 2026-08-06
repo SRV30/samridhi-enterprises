@@ -3,10 +3,7 @@ import axiosInstance from "@/api";
 
 const API_URL = "/api/wishlist";
 
-const authConfig = () => {
-  const token = localStorage.getItem("token");
-  return { headers: { Authorization: `Bearer ${token}` } };
-};
+const authConfig = () => ({});
 
 export const fetchWishlist = createAsyncThunk(
   "wishlist/fetch",

@@ -8,8 +8,7 @@ import { uploadImage, deleteImage } from "../utils/cloudinary.js";
 // returned when the admin has not configured anything yet.
 export const getPaymentSettings = catchAsyncErrors(async (req, res, next) => {
   const settings = await PaymentSettings.findOne();
-  res.status(200).json({
-    success: true,
+  res.sendSuccess({
     settings: settings || {
       upiId: "",
       qrImage: { public_id: "", url: "" },
@@ -68,8 +67,7 @@ export const adminUpdatePaymentSettings = catchAsyncErrors(
 
     await settings.save();
 
-    res.status(200).json({
-      success: true,
+    res.sendSuccess({
       message: "Payment settings updated successfully",
       settings,
     });

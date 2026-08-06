@@ -67,13 +67,13 @@ export const createCoupon = catchAsyncErrors(async (req, res, next) => {
     isActive: isActive ?? true,
   });
 
-  res.status(201).json({ success: true, coupon });
+  res.sendSuccess({ coupon }, 201);
 });
 
 // ── Admin: list all coupons ───────────────────────────────────────────────
 export const getAllCoupons = catchAsyncErrors(async (req, res) => {
   const coupons = await Coupon.find().sort({ createdAt: -1 });
-  res.status(200).json({ success: true, coupons });
+  res.sendSuccess({ coupons });
 });
 
 // ── Admin: update a coupon ────────────────────────────────────────────────
@@ -123,7 +123,7 @@ export const updateCoupon = catchAsyncErrors(async (req, res, next) => {
   if (isActive !== undefined) coupon.isActive = isActive;
 
   await coupon.save();
-  res.status(200).json({ success: true, coupon });
+  res.sendSuccess({ coupon });
 });
 
 // ── Admin: delete a coupon ────────────────────────────────────────────────
@@ -131,13 +131,16 @@ export const deleteCoupon = catchAsyncErrors(async (req, res, next) => {
   const coupon = await Coupon.findById(req.params.id);
   if (!coupon) return next(new ErrorHandler("Coupon not found", 404));
   await coupon.deleteOne();
-  res.status(200).json({ success: true, message: "Coupon deleted" });
+  res.sendSuccess({ message: "Coupon deleted" });
 });
 
 // ── User: validate a coupon against the current cart ──────────────────────
 // Computes the discount server-side from the user's own cart subtotal so the
 // client cannot influence the amount. Returns the discount and resulting total
 // for display only — order creation re-validates independently.
+import { CouponRulesEngine } from "../utils/couponRulesEngine.js";
+import Order from "../models/orderModel.js";
+
 export const validateCoupon = catchAsyncErrors(async (req, res, next) => {
   const { code } = req.body;
   if (!code || !String(code).trim()) {
@@ -151,33 +154,30 @@ export const validateCoupon = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid coupon code", 404));
   }
 
-  const redeemable = coupon.isRedeemable();
-  if (!redeemable.ok) {
-    return next(new ErrorHandler(redeemable.reason, 400));
-  }
-
-  const cart = await Cart.findOne({ user: req.user._id });
+  const cart = await Cart.findOne({ user: req.user._id }).populate("items.partId");
   if (!cart || cart.items.length === 0) {
     return next(new ErrorHandler("Your cart is empty", 400));
   }
 
+  const userUsageCount = await Order.countDocuments({
+    user: req.user._id,
+    "coupon.code": coupon.code,
+  });
+
+  const evaluation = CouponRulesEngine.evaluateCouponEligibility(coupon, {
+    subtotal: cart.total || 0,
+    items: cart.items,
+    userUsageCount,
+  });
+
+  if (!evaluation.eligible) {
+    return next(new ErrorHandler(evaluation.reason, 400));
+  }
+
   const subtotal = cart.total || 0;
-  if (subtotal < coupon.minOrderAmount) {
-    return next(
-      new ErrorHandler(
-        `This coupon requires a minimum order of ₹${coupon.minOrderAmount}`,
-        400
-      )
-    );
-  }
+  const discount = evaluation.discount;
 
-  const discount = coupon.computeDiscount(subtotal);
-  if (discount <= 0) {
-    return next(new ErrorHandler("This coupon does not apply to your cart", 400));
-  }
-
-  res.status(200).json({
-    success: true,
+  res.sendSuccess({
     coupon: {
       code: coupon.code,
       description: coupon.description,
@@ -188,4 +188,15 @@ export const validateCoupon = catchAsyncErrors(async (req, res, next) => {
     discount,
     payable: Math.max(0, subtotal - discount),
   });
+});
+
+// Added for #345: Validate and increment coupon usage atomically
+import { verifyCouponLimitAtomic } from "../utils/couponUsageLock.js";
+export const validateCouponAtomic = catchAsyncErrors(async (req, res, next) => {
+  const { code } = req.body;
+  const coupon = await verifyCouponLimitAtomic(Coupon, code.toUpperCase().trim());
+  if (!coupon) {
+    return next(new ErrorHandler("Coupon invalid or usage limit reached", 400));
+  }
+  res.sendSuccess({ message: "Coupon applied successfully", coupon });
 });

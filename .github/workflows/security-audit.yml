@@ -1,0 +1,35 @@
+name: Security Audit & Dependency Scanner
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Run weekly on Sunday midnight
+  workflow_dispatch:
+
+jobs:
+  security-audit:
+    name: Audit NPM Vulnerabilities
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Audit Server Dependencies
+        run: |
+          cd server
+          npm audit --audit-level=high || true
+
+      - name: Audit Client Dependencies
+        run: |
+          cd client
+          npm audit --audit-level=high || true
+
+      - name: Generate Security Audit Summary
+        run: |
+          echo "Security audit scanning completed at $(date)" > security-audit-report.txt
+

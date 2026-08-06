@@ -7,11 +7,9 @@ export const addPart = createAsyncThunk(
   "part/add",
   async (formData, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const config = {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
         },
       };
       const response = await axiosInstance.post(`${API_URL}/add`, formData, config);
@@ -76,13 +74,8 @@ export const fetchRecommendedForYou = createAsyncThunk(
   "part/fetchRecommendedForYou",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      const config = token
-        ? { headers: { Authorization: `Bearer ${token}` } }
-        : {};
       const response = await axiosInstance.get(
-        `${API_URL}/recommendations/for-you`,
-        config
+        `${API_URL}/recommendations/for-you`
       );
       return response.data;
     } catch (error) {
@@ -130,13 +123,8 @@ export const adminGetRecommendationAnalytics = createAsyncThunk(
   "part/adminGetRecommendationAnalytics",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      const config = token
-        ? { headers: { Authorization: `Bearer ${token}` } }
-        : {};
       const response = await axiosInstance.get(
-        `${API_URL}/admin/recommendation-analytics`,
-        config
+        `${API_URL}/admin/recommendation-analytics`
       );
       return response.data.recommendationAnalytics;
     } catch (error) {
@@ -149,11 +137,9 @@ export const updatePart = createAsyncThunk(
   "part/update",
   async ({ id, formData }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const config = {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
         },
       };
       const response = await axiosInstance.put(`${API_URL}/update/${id}`, formData, config);
@@ -168,13 +154,7 @@ export const deletePart = createAsyncThunk(
   "part/delete",
   async (id, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-      const response = await axiosInstance.delete(`${API_URL}/delete/${id}`, config);
+      const response = await axiosInstance.delete(`${API_URL}/delete/${id}`);
       return { id, ...response.data };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -186,19 +166,9 @@ export const createOrUpdateReview = createAsyncThunk(
   "part/createOrUpdateReview",
   async ({ partId, rating, comment }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        return rejectWithValue("No authentication token found");
-      }
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
       const response = await axiosInstance.post(
         `${API_URL}/review/${partId}`,
-        { rating, comment },
-        config
+        { rating, comment }
       );
       return response.data;
     } catch (error) {
@@ -211,16 +181,7 @@ export const deleteReview = createAsyncThunk(
   "part/deleteReview",
   async (partId, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        return rejectWithValue("No authentication token found");
-      }
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-      const response = await axiosInstance.delete(`${API_URL}/review/${partId}`, config);
+      const response = await axiosInstance.delete(`${API_URL}/review/${partId}`);
       return { partId, ...response.data };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);

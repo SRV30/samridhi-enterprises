@@ -4,11 +4,9 @@ import axiosInstance from "@/api";
 const API_URL = "/api/orders";
 
 const authConfig = (multipart = false) => {
-  const token = localStorage.getItem("token");
   return {
     headers: {
       ...(multipart ? { "Content-Type": "multipart/form-data" } : {}),
-      Authorization: `Bearer ${token}`,
     },
   };
 };
@@ -165,11 +163,11 @@ export const adminGetSalesAnalytics = createAsyncThunk(
 // Admin — update order fulfilment status
 export const adminUpdateOrderStatus = createAsyncThunk(
   "order/adminUpdateStatus",
-  async ({ id, orderStatus }, { rejectWithValue }) => {
+  async ({ id, orderStatus, carrier, trackingNumber }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.put(
         `${API_URL}/admin/status/${id}`,
-        { orderStatus },
+        { orderStatus, carrier, trackingNumber },
         authConfig()
       );
       return response.data.order;
@@ -192,6 +190,7 @@ const orderSlice = createSlice({
     loading: false,
     error: null,
     success: false,
+    clientSecret: null,
   },
   reducers: {
     clearOrderError: (state) => {
@@ -200,6 +199,7 @@ const orderSlice = createSlice({
     clearOrderSuccess: (state) => {
       state.success = false;
       state.lastCreatedOrder = null;
+      state.clientSecret = null;
     },
   },
   extraReducers: (builder) => {
@@ -214,6 +214,7 @@ const orderSlice = createSlice({
         state.loading = false;
         state.success = true;
         state.lastCreatedOrder = action.payload.order;
+        state.clientSecret = action.payload.clientSecret || null;
       })
       .addCase(createOrder.rejected, (state, action) => {
         state.loading = false;

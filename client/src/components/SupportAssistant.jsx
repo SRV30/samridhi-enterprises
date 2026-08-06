@@ -98,7 +98,7 @@ const SupportAssistant = () => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         aria-label={open ? "Close support assistant" : "Open support assistant"}
-        className="fixed bottom-20 right-5 sm:bottom-6 sm:right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/30 transition hover:shadow-xl"
+        className="fixed bottom-20 right-5 sm:bottom-24 sm:right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/30 transition hover:shadow-xl"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </motion.button>

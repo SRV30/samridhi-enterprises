@@ -217,6 +217,15 @@ the rupee discount (`0` = no cap). `usageLimit` `0` = unlimited.
 
 ---
 
+## Administrative Extensions — `/api/parts` & `/api/cart`
+
+| Method | Path | Access | Description |
+|--------|------|--------|-------------|
+| PUT | `/api/parts/admin/bulk-stock` | 🛡️ | Bulk update inventory stock quantities. Body: `{ items: [{ partId, stock }] }`. |
+| DELETE | `/api/cart/admin/cleanup` | 🛡️ | Clean up stale abandoned carts inactive for > 30 days. |
+
+---
+
 ### Garage (`/api/garage`)
 
 Manage the user's personal vehicle garage for compatibility lookups.

@@ -3,10 +3,7 @@ import axiosInstance from "@/api";
 
 const API_URL = "/api/coupon";
 
-const authConfig = () => {
-  const token = localStorage.getItem("token");
-  return { headers: { Authorization: `Bearer ${token}` } };
-};
+const authConfig = () => ({});
 
 // ── User: validate a coupon against the current cart ──
 export const validateCoupon = createAsyncThunk(

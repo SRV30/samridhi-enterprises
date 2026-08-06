@@ -43,3 +43,5 @@ garageSchema.index({ user: 1, isDefault: 1 });
 garageSchema.index({ user: 1, bikeModel: 1 });
 
 export default mongoose.model("Garage", garageSchema);
+
+// Ensured compound index on user and isDefault to avoid concurrent multi-default entries

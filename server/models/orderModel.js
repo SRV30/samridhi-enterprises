@@ -28,6 +28,7 @@ const orderSchema = new mongoose.Schema(
     },
     itemsTotal: { type: Number, required: true, min: 0 },
     couponCode: { type: String, default: "" },
+    isReordered: { type: Boolean, default: false },
     discount: { type: Number, default: 0, min: 0 },
     // grandTotal = itemsTotal − discount. Not required so that admin
     // operations calling .save() on pre-coupon orders do not fail
@@ -64,6 +65,14 @@ const orderSchema = new mongoose.Schema(
     verifiedAt: { type: Date, default: null },
     rejectionReason: { type: String, default: "" },
     stockRestored: { type: Boolean, default: false },
+    carrier: { type: String, default: "" },
+    trackingNumber: { type: String, default: "" },
+    statusHistory: [
+      {
+        status: { type: String, required: true },
+        changedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

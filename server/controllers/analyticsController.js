@@ -63,8 +63,7 @@ export const adminGetDashboardAnalytics = catchAsyncErrors(
       return acc;
     }, {});
 
-    res.status(200).json({
-      success: true,
+    res.sendSuccess({
       analytics: {
         totalRevenue: revenue,
         totalOrders,
@@ -103,8 +102,7 @@ export const adminGetInventoryOverview = catchAsyncErrors(
       };
     });
 
-    res.status(200).json({
-      success: true,
+    res.sendSuccess({
       count: inventory.length,
       lowStockThreshold: LOW_STOCK_THRESHOLD,
       inventory,
@@ -264,8 +262,7 @@ export const adminGetSalesAnalytics = catchAsyncErrors(
       createdAt: o.createdAt,
     }));
 
-    res.status(200).json({
-      success: true,
+    res.sendSuccess({
       salesAnalytics: {
         monthlySales,
         topProducts,

@@ -23,7 +23,7 @@ const populatedWishlist = async (userId) => {
 // GET /api/wishlist  (auth)
 export const getWishlist = catchAsyncErrors(async (req, res, next) => {
   const wishlist = await populatedWishlist(req.user._id);
-  res.status(200).json({ success: true, wishlist });
+  res.sendSuccess({ wishlist });
 });
 
 // POST /api/wishlist  (auth)  body: { partId }
@@ -47,7 +47,7 @@ export const addToWishlist = catchAsyncErrors(async (req, res, next) => {
   }
 
   const populated = await populatedWishlist(req.user._id);
-  res.status(200).json({ success: true, wishlist: populated });
+  res.sendSuccess({ wishlist: populated });
 });
 
 // DELETE /api/wishlist/:partId  (auth)
@@ -60,5 +60,5 @@ export const removeFromWishlist = catchAsyncErrors(async (req, res, next) => {
   await wishlist.save();
 
   const populated = await populatedWishlist(req.user._id);
-  res.status(200).json({ success: true, wishlist: populated });
+  res.sendSuccess({ wishlist: populated });
 });

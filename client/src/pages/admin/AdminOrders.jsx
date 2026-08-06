@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-// eslint-disable-next-line no-unused-vars
-import { motion } from "framer-motion";
 import {
   adminGetAllOrders,
   adminVerifyPayment,
   adminUpdateOrderStatus,
   clearOrderError,
 } from "../../store/order/orderSlice";
-import Loader from "../../extras/Loader";
-import EmptyState from "../../components/EmptyState";
+import {
+  AdminPageHeader,
+  AdminCard,
+  AdminTable,
+  AdminBadge,
+  AdminSearchInput,
+  AdminModal,
+} from "@/components/admin/AdminUI";
+import { Button } from "@/components/ui";
+import { ClipboardList, Eye, CheckCircle2, XCircle } from "lucide-react";
 
 const STATUS_OPTIONS = [
   "",
@@ -22,10 +28,6 @@ const STATUS_OPTIONS = [
   "Cancelled",
 ];
 
-// The fulfilment lifecycle an admin can move an order through. Mirrors the
-// backend FULFILLMENT_STATUSES in orderController.adminUpdateOrderStatus, which
-// only accepts these post-confirmation statuses (payment verification is
-// handled separately via Approve/Reject).
 const FULFILLMENT_STATUSES = [
   "Confirmed",
   "Processing",
@@ -34,42 +36,39 @@ const FULFILLMENT_STATUSES = [
   "Cancelled",
 ];
 
-const statusColor = (status) => {
+const getBadgeVariant = (status) => {
   switch (status) {
     case "Success":
     case "Confirmed":
     case "Delivered":
-      return "bg-green-100 text-green-800";
+      return "success";
     case "Pending":
     case "Pending Verification":
     case "Processing":
     case "Shipped":
-      return "bg-yellow-100 text-yellow-800";
+      return "warning";
     case "Failed":
     case "Cancelled":
-      return "bg-red-100 text-red-800";
+    case "Rejected":
+      return "danger";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "info";
   }
 };
 
-const formatDate = (d) =>
-  new Date(d).toLocaleString("en-IN", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-const AdminOrders = () => {
+export default function AdminOrders() {
   const dispatch = useDispatch();
-  const { adminOrders, loading, error } = useSelector((state) => state.order);
-  const [filter, setFilter] = useState("");
+  const { adminOrders = [], loading, error } = useSelector((state) => state.order);
+
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    dispatch(adminGetAllOrders(filter || undefined));
-  }, [dispatch, filter]);
+    dispatch(adminGetAllOrders());
+  }, [dispatch]);
 
   useEffect(() => {
     if (error) {
@@ -78,241 +77,300 @@ const AdminOrders = () => {
     }
   }, [error, dispatch]);
 
-  const handleApprove = (id) => {
-    dispatch(adminVerifyPayment({ id, action: "approve" })).then((res) => {
-      if (adminVerifyPayment.fulfilled.match(res)) {
-        toast.success("Payment approved and order confirmed");
-        dispatch(adminGetAllOrders(filter || undefined));
-      }
-    });
-  };
+  const filteredOrders = adminOrders.filter((order) => {
+    const matchesStatus = !selectedStatus || order.orderStatus === selectedStatus;
+    const matchesSearch =
+      order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.shippingAddress?.fullName?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
 
-  const handleReject = (id) => {
-    const reason = window.prompt(
-      "Reason for rejecting this payment (optional):",
-      ""
-    );
-    // window.prompt returns null if the admin cancels.
-    if (reason === null) return;
+  const handleVerify = (orderId, action) => {
+    if (action === "reject" && !rejectReason.trim()) {
+      toast.error("Please enter a reason for rejecting the payment screenshot.");
+      return;
+    }
+
     dispatch(
-      adminVerifyPayment({ id, action: "reject", rejectionReason: reason })
+      adminVerifyPayment({
+        id: orderId,
+        action,
+        rejectionReason: action === "reject" ? rejectReason : undefined,
+      })
     ).then((res) => {
-      if (adminVerifyPayment.fulfilled.match(res)) {
-        toast.success("Payment rejected and order cancelled");
-        dispatch(adminGetAllOrders(filter || undefined));
+      if (!res.error) {
+        toast.success(`Payment ${action}d successfully`);
+        setSelectedOrder(null);
+        setShowRejectInput(false);
+        setRejectReason("");
       }
     });
   };
 
-  // Advance an order through its fulfilment lifecycle. The backend enforces the
-  // payment-verified rule (Processing/Shipped/Delivered require a successful
-  // payment); we surface any rejection message it returns.
-  const handleStatusChange = (id, orderStatus) => {
-    dispatch(adminUpdateOrderStatus({ id, orderStatus })).then((res) => {
-      if (adminUpdateOrderStatus.fulfilled.match(res)) {
-        toast.success(`Order status updated to ${orderStatus}`);
-        dispatch(adminGetAllOrders(filter || undefined));
-      } else if (adminUpdateOrderStatus.rejected.match(res)) {
-        toast.error(res.payload || "Failed to update order status");
+  const handleStatusChange = (orderId, newStatus) => {
+    dispatch(adminUpdateOrderStatus({ id: orderId, status: newStatus })).then(
+      (res) => {
+        if (!res.error) {
+          toast.success("Order status updated");
+          if (selectedOrder && selectedOrder._id === orderId) {
+            setSelectedOrder({ ...selectedOrder, orderStatus: newStatus });
+          }
+        }
       }
-    });
+    );
   };
 
-  if (loading && (!adminOrders || adminOrders.length === 0)) return <Loader />;
+  const columns = [
+    { header: "Order ID" },
+    { header: "Customer" },
+    { header: "Payment" },
+    { header: "Order Status" },
+    { header: "Total (₹)" },
+    { header: "Actions", className: "text-right" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-28 pb-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-blue-900">
-            Manage Orders
-          </h1>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+      <AdminPageHeader
+        title="Orders Management"
+        subtitle="Review order payments, verify screenshot approvals, and track order fulfillment."
+        icon={<ClipboardList className="w-6 h-6" />}
+        badge={`${filteredOrders.length} Orders`}
+      />
+
+      {/* Filters Bar */}
+      <AdminCard className="!p-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <AdminSearchInput
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by Order ID or Customer Name..."
+            className="w-full sm:w-80"
+          />
           <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="w-full sm:w-56 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
           >
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s || "all"} value={s}>
-                {s === "" ? "All Statuses" : s}
+            <option value="">All Statuses</option>
+            {STATUS_OPTIONS.filter(Boolean).map((st) => (
+              <option key={st} value={st}>
+                {st}
               </option>
             ))}
           </select>
         </div>
+      </AdminCard>
 
-        {!adminOrders || adminOrders.length === 0 ? (
-          <EmptyState
-            icon="Inbox"
-            title="No orders found"
-            message={filter ? `No orders with status "${filter}". Try a different filter.` : "No orders have been placed yet. They will appear here once customers start ordering."}
-          />
-        ) : (
-          <div className="space-y-6">
-            {adminOrders.map((order) => (
-              <motion.div
-                key={order._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6 lg:p-8"
-              >
-                <div className="flex flex-col lg:flex-row lg:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor(
-                          order.orderStatus
-                        )}`}
-                      >
-                        {order.orderStatus}
-                      </span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor(
-                          order.paymentStatus
-                        )}`}
-                      >
-                        Payment: {order.paymentStatus}
-                      </span>
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                        {order.paymentMethod}
-                      </span>
-                    </div>
-
-                    <p className="font-mono text-xs text-gray-500 break-all mb-1">
-                      {order._id}
-                    </p>
-                    <p className="text-sm text-gray-500 mb-3">
-                      {formatDate(order.createdAt)}
-                    </p>
-
-                    <div className="text-sm text-gray-700 mb-3">
-                      <span className="font-semibold">Customer:</span>{" "}
-                      {order.user?.name || "—"}{" "}
-                      {order.user?.email ? `(${order.user.email})` : ""}
-                    </div>
-
-                    <div className="text-sm text-gray-700 mb-3">
-                      <span className="font-semibold">Ship to:</span>{" "}
-                      {order.shippingAddress?.fullName},{" "}
-                      {order.shippingAddress?.addressLine},{" "}
-                      {order.shippingAddress?.city}
-                      {order.shippingAddress?.state
-                        ? ", " + order.shippingAddress.state
-                        : ""}{" "}
-                      - {order.shippingAddress?.pincode}, Ph:{" "}
-                      {order.shippingAddress?.phone}
-                    </div>
-
-                    <div className="border-t border-gray-100 pt-3 space-y-1 mb-3">
-                      {order.items.map((item, idx) => (
-                        <div
-                          key={item._id || item.part || `${order._id}-${idx}`}
-                          className="flex justify-between text-sm"
-                        >
-                          <span className="text-gray-700 pr-2">
-                            {item.name}{" "}
-                            <span className="text-gray-400">
-                              x{item.quantity}
-                            </span>
-                          </span>
-                          <span className="font-semibold text-gray-900 whitespace-nowrap">
-                            ₹{(item.price * item.quantity).toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="text-lg font-bold text-gray-900">
-                      Total: ₹{order.itemsTotal.toLocaleString()}
-                    </div>
-
-                    {order.upiReference && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        UPI Ref: {order.upiReference}
-                      </p>
-                    )}
-                    {order.rejectionReason && (
-                      <p className="text-sm text-red-600 mt-2 bg-red-50 rounded-lg px-3 py-1.5 inline-block">
-                        Rejected: {order.rejectionReason}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Screenshot + actions */}
-                  <div className="lg:w-64 flex-shrink-0 flex flex-col gap-3">
-                    {order.paymentScreenshot?.url ? (
-                      <a
-                        href={order.paymentScreenshot.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Click to view full screenshot"
-                      >
-                        <img
-                          src={order.paymentScreenshot.url}
-                          alt="Payment screenshot"
-                          className="w-full h-40 object-cover rounded-xl border border-gray-200 hover:opacity-90 transition"
-                        />
-                      </a>
-                    ) : (
-                      <div className="w-full h-40 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-400 text-center p-3">
-                        {order.paymentMethod === "COD"
-                          ? "COD — no screenshot"
-                          : "No screenshot"}
-                      </div>
-                    )}
-
-                    {order.paymentStatus === "Pending Verification" && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApprove(order._id)}
-                          className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold text-sm transition"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject(order._id)}
-                          className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm transition"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Fulfilment status control — available once the order is
-                        no longer awaiting payment verification and not in a
-                        terminal state. Lets the admin advance the lifecycle
-                        (Confirmed -> Processing -> Shipped -> Delivered) or
-                        cancel. */}
-                    {order.orderStatus !== "Pending Verification" &&
-                      order.orderStatus !== "Delivered" &&
-                      order.orderStatus !== "Cancelled" && (
-                        <div className="border-t border-gray-100 pt-3 mt-1">
-                          <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                            Update fulfilment status
-                          </label>
-                          <select
-                            value={order.orderStatus}
-                            onChange={(e) =>
-                              handleStatusChange(order._id, e.target.value)
-                            }
-                            className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          >
-                            {FULFILLMENT_STATUSES.map((st) => (
-                              <option key={st} value={st}>
-                                {st}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
+      {/* Table */}
+      <AdminCard title="Customer Orders" subtitle="Complete history of placed orders.">
+        <AdminTable
+          columns={columns}
+          data={filteredOrders}
+          loading={loading}
+          emptyMessage="No customer orders match criteria."
+          renderRow={(order) => (
+            <tr key={order._id} className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors">
+              <td className="px-4 py-3.5 font-mono text-xs font-bold text-[#2562EB] dark:text-blue-400">
+                #{order._id.slice(-8).toUpperCase()}
+              </td>
+              <td className="px-4 py-3.5 text-sm">
+                <div className="font-bold text-gray-900 dark:text-white">
+                  {order.user?.name || order.shippingAddress?.fullName || "Guest Customer"}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {order.shippingAddress?.city}, {order.shippingAddress?.pincode}
+                </div>
+              </td>
+              <td className="px-4 py-3.5">
+                <div className="space-y-1">
+                  <AdminBadge variant={getBadgeVariant(order.paymentStatus)}>
+                    {order.paymentStatus}
+                  </AdminBadge>
+                  <div className="text-xs text-gray-500 font-medium">
+                    Method: {order.paymentMethod}
                   </div>
                 </div>
-              </motion.div>
-            ))}
+              </td>
+              <td className="px-4 py-3.5">
+                <select
+                  value={order.orderStatus}
+                  onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                >
+                  {FULFILLMENT_STATUSES.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td className="px-4 py-3.5 text-sm font-extrabold text-gray-900 dark:text-white">
+                ₹{order.itemsTotal || order.totalAmount}
+              </td>
+              <td className="px-4 py-3.5 text-right">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedOrder(order);
+                    setShowRejectInput(false);
+                    setRejectReason("");
+                  }}
+                  className="!py-1.5 !px-3 !text-xs !gap-1"
+                >
+                  <Eye className="w-3.5 h-3.5" /> Details
+                </Button>
+              </td>
+            </tr>
+          )}
+        />
+      </AdminCard>
+
+      {/* Details Modal */}
+      <AdminModal
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        title={`Order Details #${selectedOrder?._id.slice(-8).toUpperCase()}`}
+        maxWidth="max-w-2xl"
+      >
+        {selectedOrder && (
+          <div className="space-y-6">
+            {/* Address & Payment Info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200 dark:border-gray-800 text-sm">
+              <div>
+                <h4 className="font-bold text-gray-900 dark:text-white mb-1">Shipping Address</h4>
+                <p className="text-gray-700 dark:text-gray-300 font-medium">
+                  {selectedOrder.shippingAddress?.fullName}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {selectedOrder.shippingAddress?.addressLine}, {selectedOrder.shippingAddress?.city}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {selectedOrder.shippingAddress?.state} - {selectedOrder.shippingAddress?.pincode}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  📞 {selectedOrder.shippingAddress?.phone}
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-gray-900 dark:text-white mb-1">Payment Info</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Method: <span className="font-semibold text-gray-700 dark:text-gray-200">{selectedOrder.paymentMethod}</span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Status:{" "}
+                  <AdminBadge variant={getBadgeVariant(selectedOrder.paymentStatus)}>
+                    {selectedOrder.paymentStatus}
+                  </AdminBadge>
+                </p>
+                {selectedOrder.paymentRejectionReason && (
+                  <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">
+                    Rejection Reason: {selectedOrder.paymentRejectionReason}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Verification Screenshot if Online */}
+            {selectedOrder.paymentScreenshot?.url && (
+              <div className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+                <h4 className="font-bold text-gray-900 dark:text-white text-sm">
+                  Payment Verification Screenshot
+                </h4>
+                <div className="max-h-60 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                  <img
+                    src={selectedOrder.paymentScreenshot.url}
+                    alt="Payment Screenshot"
+                    className="max-h-60 object-contain"
+                  />
+                </div>
+
+                {selectedOrder.paymentStatus === "Pending Verification" && (
+                  <div className="pt-2 space-y-2">
+                    {!showRejectInput ? (
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant="primary"
+                          onClick={() => handleVerify(selectedOrder._id, "approve")}
+                          className="!gap-1 !bg-emerald-600 hover:!bg-emerald-700"
+                        >
+                          <CheckCircle2 className="w-4 h-4" /> Approve Payment
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={() => setShowRejectInput(true)}
+                          className="!gap-1"
+                        >
+                          <XCircle className="w-4 h-4" /> Reject Payment
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={rejectReason}
+                          onChange={(e) => setRejectReason(e.target.value)}
+                          placeholder="Enter reason for rejection..."
+                          className="w-full px-3 py-2 border border-rose-300 dark:border-rose-800 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="danger"
+                            onClick={() => handleVerify(selectedOrder._id, "reject")}
+                          >
+                            Confirm Rejection
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowRejectInput(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Line Items Table */}
+            <div>
+              <h4 className="font-bold text-gray-900 dark:text-white text-sm mb-2">
+                Order Items ({selectedOrder.items?.length || 0})
+              </h4>
+              <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-semibold uppercase">
+                    <tr>
+                      <th className="p-3">Product</th>
+                      <th className="p-3">Price</th>
+                      <th className="p-3">Qty</th>
+                      <th className="p-3 text-right">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                    {selectedOrder.items?.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="p-3 font-semibold text-gray-900 dark:text-white">
+                          {item.name || item.part?.name || "Product Item"}
+                        </td>
+                        <td className="p-3">₹{item.price}</td>
+                        <td className="p-3">{item.quantity}</td>
+                        <td className="p-3 text-right font-bold">
+                          ₹{item.price * item.quantity}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
-      </div>
+      </AdminModal>
     </div>
   );
-};
-
-export default AdminOrders;
+}

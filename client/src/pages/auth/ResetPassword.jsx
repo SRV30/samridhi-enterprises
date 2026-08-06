@@ -168,6 +168,7 @@ const ResetPassword = () => {
                 <motion.input
                   id="reset-new-password"
                   type={showNewPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   placeholder="New Password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -228,6 +229,7 @@ const ResetPassword = () => {
                 <motion.input
                   id="reset-confirm-password"
                   type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   placeholder="Confirm Password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
