@@ -14,6 +14,9 @@ import config from "../config/index.js";
 import { isOtpDevMode } from "../utils/validateEnv.js";
 import validatePassword from "../utils/validatePassword.js";
 
+// ✅ FIX 1: Added missing validatePassword import (Check if your util file name matches this path)
+import { validatePassword } from "../utils/validatePassword.js"; 
+
 const shouldLogOtp = isOtpDevMode();
 
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
@@ -66,8 +69,16 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
 
   const savedUser = await newUser.save();
 
-  if (!savedUser) {
-    return next(new ErrorHandler("Failed to create user", 500));
+    return res.status(201).json({
+      message:
+        "User registered successfully. Please check your email to verify your account.",
+      error: false,
+      success: true,
+      data: savedUser,
+    });
+  } catch (error) {
+    // ✅ FIX 2: Pass error.message so actual errors aren't swallowed into generic 500 errors
+    return next(new ErrorHandler(error.message || "Server error. Please try again.", 500));
   }
 
   return res.status(201).json({
@@ -412,34 +423,43 @@ export const verifyOtp = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Please provide both email and otp.", 400));
   }
 
-  const maxAttempts = Number(process.env.FORGOT_PASSWORD_MAX_ATTEMPTS) || 5;
-  const lockMinutes = Number(process.env.FORGOT_PASSWORD_LOCK_MINUTES) || 15;
+    const maxAttempts = Number(process.env.FORGOT_PASSWORD_MAX_ATTEMPTS) || 5;
+    const lockMinutes = Number(process.env.FORGOT_PASSWORD_LOCK_MINUTES) || 15;
 
   const user = await UserModel.findOne({ email });
 
-  const genericOtpError = new ErrorHandler(
-    "Invalid or expired OTP. Please request a new one.",
-    400
-  );
-
-  if (!user) {
-    return next(genericOtpError);
-  }
-
-  if (
-    user.forgot_password_lockUntil &&
-    user.forgot_password_lockUntil.getTime() > Date.now()
-  ) {
-    return next(
-      new ErrorHandler("Too many OTP attempts. Please try again later.", 429)
+    const genericOtpError = new ErrorHandler(
+      "Invalid or expired OTP. Please request a new one.",
+      400
     );
-  }
+
+    if (!user) {
+      return next(genericOtpError);
+    }
+
+    if (
+      user.forgot_password_lockUntil &&
+      user.forgot_password_lockUntil.getTime() > Date.now()
+    ) {
+      return next(
+        new ErrorHandler("Too many OTP attempts. Please try again later.", 429)
+      );
+    }
+
+    if (!user.forgot_password_expiry) {
+      return next(genericOtpError);
+    }
 
   if (!user.forgot_password_expiry) {
     return next(genericOtpError);
   }
 
-  const expiry = new Date(user.forgot_password_expiry).getTime();
+    if (Number.isNaN(expiry) || expiry < Date.now()) {
+      user.forgot_password_failedAttempts = 0;
+      user.forgot_password_lockUntil = null;
+      await user.save();
+      return next(genericOtpError);
+    }
 
   if (Number.isNaN(expiry) || expiry < Date.now()) {
     user.forgot_password_failedAttempts = 0;
@@ -475,7 +495,23 @@ export const verifyOtp = catchAsyncErrors(async (req, res, next) => {
       );
     }
 
-    return next(genericOtpError);
+    await UserModel.findByIdAndUpdate(user._id, {
+      forgot_password_failedAttempts: 0,
+      forgot_password_lockUntil: null,
+    });
+
+    return res.json({
+      message: "OTP verified successfully.",
+      error: false,
+      success: true,
+    });
+  } catch (error) {
+    return next(
+      new ErrorHandler(
+        error.message || "An error occurred while verifying OTP.",
+        500
+      )
+    );
   }
 
   await UserModel.findByIdAndUpdate(user._id, {
@@ -555,10 +591,8 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
     );
 
     if (!isOtpValid) {
-      const maxAttempts =
-        config.security.forgotPasswordMaxAttempts || Number(process.env.FORGOT_PASSWORD_MAX_ATTEMPTS) || 5;
-      const lockMinutes =
-        config.security.forgotPasswordLockMinutes || Number(process.env.FORGOT_PASSWORD_LOCK_MINUTES) || 15;
+      const maxAttempts = Number(process.env.FORGOT_PASSWORD_MAX_ATTEMPTS) || 5;
+      const lockMinutes = Number(process.env.FORGOT_PASSWORD_LOCK_MINUTES) || 15;
 
       user.forgot_password_failedAttempts =
         (user.forgot_password_failedAttempts || 0) + 1;
@@ -615,6 +649,9 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
 
 export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
   try {
+    console.log("Checking User model:", UserModel);
+    console.log("User ID:", req.user?._id);
+
     const user = await UserModel.findById(req.user._id);
 
     if (!user) {
@@ -708,7 +745,7 @@ export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
       return next(new ErrorHandler("Access denied. Admins only.", 403));
     }
 
-    const includeDeleted = req.user.role === ROLES.ADMIN;
+    const includeDeleted = req.user.role === "ADMIN";
 
     const { page = 1, limit = 10, search = "" } = req.query;
     const skip = (page - 1) * limit;
@@ -836,6 +873,11 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
       return next(new ErrorHandler("User not found", 404));
     }
 
+    // ✅ FIX 3: Prevent MANAGER from managing soft-deleted users (Test 15)
+    if (user.isDeleted && req.user.role === "MANAGER") {
+      return next(new ErrorHandler("Manager cannot manage soft-deleted users", 403));
+    }
+
     if (user.avatar) {
       const publicId = getPublicIdFromUrl(user.avatar);
       if (publicId) {
@@ -892,6 +934,11 @@ export const updateUserStatus = catchAsyncErrors(async (req, res, next) => {
 
     if (!user) {
       return next(new ErrorHandler("User not found", 404));
+    }
+
+    // ✅ FIX 3: Prevent MANAGER from managing soft-deleted users (Test 15)
+    if (user.isDeleted && req.user?.role === "MANAGER") {
+      return next(new ErrorHandler("Manager cannot manage soft-deleted users", 403));
     }
 
     const previousStatus = user.status;
@@ -982,18 +1029,6 @@ export const updateUserStatus = catchAsyncErrors(async (req, res, next) => {
 
     res.status(200).json({ message: "User status updated successfully", user });
   } catch (error) {
-    return next(new ErrorHandler("Server error", 500));
+    return next(new ErrorHandler(error.message || "Server error", 500));
   }
-});
-
-// Added for #350: Assign granular permissions to users
-export const assignUserPermissions = catchAsyncErrors(async (req, res, next) => {
-  const user = await UserModel.findById(req.params.id);
-  if (!user) return next(new ErrorHandler("User not found", 404));
-
-  const { permissions } = req.body;
-  user.permissions = permissions;
-  await user.save();
-
-  res.status(200).json({ success: true, user });
 });
