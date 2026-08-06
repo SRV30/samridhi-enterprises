@@ -1,9 +1,8 @@
 @import "tailwindcss";
 
-/* Tailwind v4 defaults `dark:` to prefers-color-scheme. This switches it to a
-   class strategy: the ThemeProvider toggles the `dark` class on <html>, so
-   `dark:` utilities respond to that class. */
-@custom-variant dark (&:where(.dark, .dark *));
+/* Tailwind v4 defaults `dark:` to prefers-color-scheme. Use Tailwind config
+   to enable class-based dark mode instead of unsupported CSS-only @variant
+   syntax. */
 
 /* Base canvas + a smooth transition when switching themes. Page containers add
    their own `dark:` backgrounds; this themes the root canvas and native UI. */
