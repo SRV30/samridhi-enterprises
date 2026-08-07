@@ -28,7 +28,7 @@
     "nodemon": "^3.1.10",
     "sib-api-v3-sdk": "^8.5.0",
     "stripe": "^22.4.0",
-    "zod": "^3.23.8"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.2.0"
