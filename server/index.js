@@ -42,6 +42,10 @@ const allowedOrigins = [
   "http://localhost:5173",
 ];
 
+// Security headers — registered early so every response includes them.
+import securityHeaders from "./middleware/securityHeaders.js";
+app.use(securityHeaders);
+
 app.use(
   cors({
     origin: (origin, callback) => {
