@@ -70,6 +70,10 @@ app.use(responseWrapper);
 app.use(inputSanitizer);
 app.use(requestLogger);
 
+// Health check routes — registered BEFORE rate limiter so monitoring
+// probes (Docker HEALTHCHECK, load balancers) are never rate-limited.
+import healthRouter from "./route/healthRoutes.js";
+app.use("/api/health", healthRouter);
 
 // Apply rate limiter to all API endpoints
 app.use("/api", rateLimiter({ max: 200, windowMs: 15 * 60 * 1000 }));
