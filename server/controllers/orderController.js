@@ -1,4 +1,5 @@
 import { validateAndFetchFreshPrices } from "../utils/cartPricingValidator.js";
+import mongoose from "mongoose";
 import ErrorHandler from "../utils/errorHandler.js";
 import Order from "../models/orderModel.js";
 import Cart from "../models/cartModel.js";
@@ -95,25 +96,52 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
   }
 
   // All checks passed, deduct stock atomically
-  const updatedParts = [];
-  let couponClaimed = null;
+
+  // The stock decrements and the order write share one transaction, so a
+  // failure anywhere after the decrement rolls the stock back automatically.
+  // Previously this was a manual compensating unwind driven by `updatedParts`,
+  // which could not survive a process crash between the deduction and the
+  // rollback loop.
+  const stockSession = await mongoose.startSession();
+  stockSession.startTransaction();
 
   try {
-    for (const item of cart.items) {
-      const part = await Part.findOneAndUpdate(
-        { _id: item.part._id, stock: { $gte: item.quantity } },
-        { $inc: { stock: -item.quantity } },
-        { new: true }
+    // One round trip for the whole cart instead of one per item.
+    //
+    // The `stock: { $gte: quantity }` filter is what makes each decrement safe
+    // against a concurrent order taking the same stock, and bulkWrite keeps that
+    // guard per operation — batching changes the number of round trips, not the
+    // concurrency guarantee.
+    //
+    // `ordered: false` lets the driver run them in parallel. Ordering is
+    // irrelevant here: every operation targets a distinct part and carries its
+    // own guard.
+    const stockOps = cart.items.map((item) => ({
+      updateOne: {
+        filter: { _id: item.part._id, stock: { $gte: item.quantity } },
+        update: { $inc: { stock: -item.quantity } },
+      },
+    }));
+
+    const bulkResult = await Part.bulkWrite(stockOps, {
+      ordered: false,
+      session: stockSession,
+    });
+
+    // A filter matching nothing means someone else took the stock between the
+    // pre-check above and this write.
+    //
+    // bulkWrite reports only a count — it cannot say *which* operation missed —
+    // so there is no way to compensate for a partial application by hand. That
+    // is why this runs inside a transaction: aborting rolls back whichever
+    // decrements did apply, atomically, and the manual `updatedParts` unwind
+    // that used to be necessary is gone.
+    if (bulkResult.modifiedCount !== cart.items.length) {
+      throw new ErrorHandler(
+        "Insufficient stock for one or more items in your cart. " +
+          "Please review your cart and try again.",
+        400
       );
-      if (!part) {
-        throw new ErrorHandler(
-          `Insufficient stock for ${
-            item.name || (item.part ? item.part.name : "Item")
-          }`,
-          400
-        );
-      }
-      updatedParts.push({ id: item.part._id, quantity: item.quantity });
     }
 
     // Snapshot the cart items onto the order (unit price + image), so the order
@@ -184,7 +212,7 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
           ],
         },
         { $inc: { usedCount: 1 } },
-        { new: true }
+        { new: true, session: stockSession }
       );
       if (!claim) {
         throw new ErrorHandler(
@@ -192,7 +220,6 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
           400
         );
       }
-      couponClaimed = claim;
       appliedCouponCode = coupon.code;
       discount = computed;
     }
@@ -213,7 +240,9 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
       orderStatus = "Confirmed";
     }
 
-    const order = await Order.create({
+    // Array form: Model.create() only accepts options as a second argument when
+    // the documents are passed as an array.
+    const [order] = await Order.create([{
       user: req.user._id,
       items,
       shippingAddress,
@@ -227,7 +256,7 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
       paymentScreenshot,
       upiReference: upiReference || "",
       statusHistory: [{ status: orderStatus, changedAt: new Date() }],
-    });
+    }], { session: stockSession });
 
     if (paymentMethod === "Online") {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -243,14 +272,16 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
 
     // Link the order to the user's history WITHOUT calling user.save(), which
     // would trigger the model's pre-save hook and re-hash the password.
-    await User.findByIdAndUpdate(req.user._id, {
-      $push: { orderHistory: order._id },
-    });
+    await User.findByIdAndUpdate(
+      req.user._id,
+      { $push: { orderHistory: order._id } },
+      { session: stockSession }
+    );
 
     // Clear the cart now that it has been converted into an order.
     cart.items = [];
     cart.total = 0;
-    await cart.save();
+    await cart.save({ session: stockSession });
 
     // Fire-and-forget email; a failure here must never break order creation.
     try {
@@ -302,6 +333,10 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
       html: generateAdminNewOrderEmail(order, req.user),
     });
 
+    // Commit before responding: the client must not be told the order succeeded
+    // until the stock decrement and the order document are both durable.
+    await stockSession.commitTransaction();
+
     res.sendSuccess({
       message:
         paymentMethod === "COD"
@@ -311,19 +346,16 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
       clientSecret,
     });
   } catch (error) {
-    // Rollback any stocks we already successfully deducted
-    for (const updated of updatedParts) {
-      await Part.findByIdAndUpdate(updated.id, {
-        $inc: { stock: updated.quantity },
-      });
+    // The transaction unwinds every stock decrement, so no manual compensation
+    // is needed. Guarded because commitTransaction() may already have run and a
+    // second abort would throw over the original error.
+    if (stockSession.inTransaction()) {
+      await stockSession.abortTransaction();
     }
-    // Rollback coupon usedCount
-    if (couponClaimed) {
-      await Coupon.findByIdAndUpdate(couponClaimed._id, {
-        $inc: { usedCount: -1 },
-      });
-    }
+
     return next(error);
+  } finally {
+    stockSession.endSession();
   }
 });
 
