@@ -1,20 +1,17 @@
 @import "tailwindcss";
 
-/* Tailwind v4 defaults `dark:` to prefers-color-scheme. Use Tailwind config
-   to enable class-based dark mode instead of unsupported CSS-only @variant
-   syntax. */
-
-/* Base canvas + a smooth transition when switching themes. Page containers add
-   their own `dark:` backgrounds; this themes the root canvas and native UI. */
 :root {
   color-scheme: light;
 }
+
 html.dark {
   color-scheme: dark;
 }
+
 body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
 html.dark body {
   background-color: #0b1220;
   color: #e5e7eb;
