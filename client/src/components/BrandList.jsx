@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBrands } from "../store/product/brandSlice";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 
@@ -65,9 +66,8 @@ export default function BrandList() {
 
   return (
     <div
+      id="top-brands"
       className="relative px-4 py-6 group w-full max-w-7xl mx-auto"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <motion.h2
         initial={{ opacity: 0, y: -10 }}
@@ -105,22 +105,26 @@ export default function BrandList() {
         className="flex gap-4 overflow-x-auto no-scrollbar justify-center scroll-smooth pb-2"
       >
         {sortedBrands.map((brand) => (
-          <motion.div
+          <Link
             key={brand._id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="min-w-[120px] md:min-w-[140px] lg:min-w-[160px] flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex flex-col items-center hover:scale-105 transition-transform duration-300"
+            to={`/products?brand=${encodeURIComponent(brand.name)}`}
           >
-            <img
-              src={brand.images[0]?.url}
-              alt={brand.name}
-              className="w-16 h-16 md:w-20 md:h-20 object-contain mb-3"
-            />
-            <span className="text-sm md:text-base font-semibold text-blue-500 dark:text-blue-400 text-center uppercase">
-              {brand.name}
-            </span>
-          </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="min-w-[120px] md:min-w-[140px] lg:min-w-[160px] flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex flex-col items-center hover:scale-105 transition-transform duration-300 cursor-pointer"
+            >
+              <img
+                src={brand.images[0]?.url}
+                alt={brand.name}
+                className="w-16 h-16 md:w-20 md:h-20 object-contain mb-3"
+              />
+              <span className="text-sm md:text-base font-semibold text-blue-500 dark:text-blue-400 text-center uppercase">
+                {brand.name}
+              </span>
+            </motion.div>
+          </Link>
         ))}
       </div>
     </div>

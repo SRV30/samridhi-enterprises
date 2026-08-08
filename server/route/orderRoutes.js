@@ -2,7 +2,13 @@ import express from "express";
 import auth from "../middleware/auth.js";
 import admin from "../middleware/Admin.js";
 import upload from "../middleware/multer.js";
+import validateSchema from "../middleware/validateSchema.js";
 import {
+  verifyPaymentSchema,
+  updateOrderStatusSchema,
+} from "../validators/orderSchemas.js";
+import {
+  createPartSubscription,
   createOrder,
   getMyOrders,
   getOrderById,
@@ -22,22 +28,18 @@ const orderRouter = express.Router();
 // Customer
 orderRouter.post("/new", auth, upload.single("paymentScreenshot"), createOrder);
 orderRouter.get("/my-orders", auth, getMyOrders);
-// Customer-initiated cancellation of an own order (owner + status checked in
-// the controller). Distinct method/path from the dynamic GET "/:id" below, so
-// there is no route shadowing.
 orderRouter.put("/:id/cancel", auth, cancelMyOrder);
 
 // Admin
 orderRouter.get("/admin/all", auth, admin, adminGetAllOrders);
-orderRouter.put("/admin/verify/:id", auth, admin, adminVerifyPayment);
-orderRouter.put("/admin/status/:id", auth, admin, adminUpdateOrderStatus);
+orderRouter.put("/admin/verify/:id", auth, admin, validateSchema(verifyPaymentSchema), adminVerifyPayment);
+orderRouter.put("/admin/status/:id", auth, admin, validateSchema(updateOrderStatusSchema), adminUpdateOrderStatus);
 
-// Admin — dashboard analytics & inventory (real data, no hardcoded values)
+// Admin — dashboard analytics & inventory
 orderRouter.get("/admin/analytics", auth, admin, adminGetDashboardAnalytics);
 orderRouter.get("/admin/inventory", auth, admin, adminGetInventoryOverview);
 
-// Admin — chart-oriented sales analytics (monthly trends, top products,
-// customer growth, recent orders) for the dedicated Sales Analytics page.
+// Admin — sales analytics
 orderRouter.get(
   "/admin/sales-analytics",
   auth,
@@ -45,8 +47,7 @@ orderRouter.get(
   adminGetSalesAnalytics
 );
 
-// Keep the dynamic /:id route LAST so it does not shadow the specific routes
-// above (e.g. /my-orders, /admin/all).
+// Keep dynamic /:id route LAST
 orderRouter.get("/:id", auth, getOrderById);
 
 export default orderRouter;

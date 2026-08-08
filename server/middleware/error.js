@@ -46,6 +46,13 @@ const errorMiddleware = (err, req, res, next) => {
     err = new ErrorHandler(message, 400);
   }
 
+  if (err.name === 'MongoServerError' && err.code === 112) {
+    err.message = 'Concurrent write transaction conflict, please try again.';
+    err.statusCode = 409;
+  }
+  if (typeof res.sendError === "function") {
+    return res.sendError(err.message, err.statusCode);
+  }
   res.status(err.statusCode).json({
     success: false,
     message: err.message,

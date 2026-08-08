@@ -30,17 +30,15 @@ export const addBrand = catchAsyncErrors(async (req, res, next) => {
     ],
   });
 
-  res.status(201).json({
-    success: true,
+  res.sendSuccess({
     message: "Brand created successfully",
     brand: newBrand,
-  });
+  }, 201);
 });
 
 export const getAllBrands = catchAsyncErrors(async (req, res, next) => {
   const brands = await Brand.find();
-  res.status(200).json({
-    success: true,
+  res.sendSuccess({
     count: brands.length,
     brands,
   });
@@ -80,8 +78,7 @@ export const updateBrand = catchAsyncErrors(async (req, res, next) => {
 
   await brand.save();
 
-  res.status(200).json({
-    success: true,
+  res.sendSuccess({
     message: "Brand updated successfully",
     brand,
   });
@@ -103,8 +100,7 @@ export const deleteBrand = catchAsyncErrors(async (req, res, next) => {
 
   await brand.deleteOne();
 
-  res.status(200).json({
-    success: true,
+  res.sendSuccess({
     message: "Brand deleted successfully",
   });
 });

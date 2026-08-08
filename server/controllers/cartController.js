@@ -58,7 +58,7 @@ export const addToCart = catchAsyncErrors(async (req, res, next) => {
   cart.total = cart.items.reduce((sum, item) => sum + item.price, 0);
   await cart.save();
 
-  res.status(200).json({ success: true, cart });
+  res.sendSuccess({ cart });
 });
 
 export const syncCart = catchAsyncErrors(async (req, res) => {
@@ -99,8 +99,7 @@ export const syncCart = catchAsyncErrors(async (req, res) => {
     "name price images stock"
   );
 
-  res.status(200).json({
-    success: true,
+  res.sendSuccess({
     warnings: failedItems.map((item) => `Could not sync item ${item.partId}: ${item.reason}`),
     failedItems,
     cart: syncedCart,
@@ -186,7 +185,7 @@ export const getCart = catchAsyncErrors(async (req, res, next) => {
       items: [],
       total: 0,
     });
-    return res.status(200).json({ success: true, warnings: [], cart });
+    return res.sendSuccess({ warnings: [], cart });
   }
 
   const populatedItems = Array.isArray(cart.items) ? cart.items : [];
@@ -205,7 +204,7 @@ export const getCart = catchAsyncErrors(async (req, res, next) => {
     await cart.save();
   }
 
-  return res.status(200).json({ success: true, warnings, cart });
+  return res.sendSuccess({ warnings, cart });
 });
 
 
@@ -239,7 +238,7 @@ export const updateCartItem = catchAsyncErrors(async (req, res, next) => {
   cart.total = cart.items.reduce((sum, item) => sum + item.price, 0);
 
   await cart.save();
-  res.status(200).json({ success: true, cart });
+  res.sendSuccess({ cart });
 });
 
 export const removeFromCart = catchAsyncErrors(async (req, res, next) => {
@@ -251,7 +250,7 @@ export const removeFromCart = catchAsyncErrors(async (req, res, next) => {
   cart.total = cart.items.reduce((sum, item) => sum + item.price, 0);
 
   await cart.save();
-  res.status(200).json({ success: true, cart });
+  res.sendSuccess({ cart });
 });
 
 
@@ -266,5 +265,18 @@ export const clearCart = catchAsyncErrors(async (req, res, next) => {
   await cart.save();
   const clearedCart = await Cart.findOne({ user: req.user._id }).populate("items.part", "name price images stock");
   console.log('Cleared cart:', JSON.stringify(clearedCart, null, 2));
-  res.status(200).json({ success: true, cart: clearedCart });
+  res.sendSuccess({ cart: clearedCart });
 });
+
+import { purgeAbandonedCarts } from "../utils/staleCartCleaner.js";
+
+export const cleanupStaleCarts = catchAsyncErrors(async (req, res, next) => {
+  const days = req.query.days ? parseInt(req.query.days, 10) : 30;
+  const result = await purgeAbandonedCarts(days);
+
+  res.sendSuccess({
+    message: `Successfully purged abandoned carts inactive for over ${days} days.`,
+    ...result,
+  });
+});
+

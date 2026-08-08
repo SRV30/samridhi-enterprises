@@ -2,6 +2,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import upload from "../middleware/multer.js";
 import {
+  getLowStockParts,
   addPart,
   getAllParts,
   getPartById,
@@ -48,8 +49,14 @@ const recommendLimiter = rateLimit({
 
 const partRouter = express.Router();
 
+import { bulkUpdateStock } from "../controllers/partsControllers.js";
+
+partRouter.get("/admin/low-stock", auth, admin, getLowStockParts);
+partRouter.put("/admin/bulk-stock", auth, admin, bulkUpdateStock);
 partRouter.post("/add", upload.array("images", 5), auth, admin, addPart);
+// partRouter.post("/warehouse-stock/:id", auth, admin, addWarehouseStock);
 partRouter.get("/get", browseLimiter, getAllParts);
+// partRouter.get("/search/faceted", browseLimiter, getFacetedSearchResults);
 partRouter.get("/get/:id", browseLimiter, getPartById);
 partRouter.get("/get/:id/similar", browseLimiter, getSimilarParts);
 partRouter.get(

@@ -1,5 +1,4 @@
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import cloudinary from "cloudinary";
@@ -7,8 +6,8 @@ import connectDB from "./config/connectDB.js";
 import errorMiddleware from "./middleware/error.js";
 import requestLogger from "./middleware/requestLogger.js";
 import validateEnv from "./utils/validateEnv.js";
+import config from "./config/index.js";
 
-dotenv.config();
 validateEnv();
 
 process.on("uncaughtException", (err) => {
@@ -18,13 +17,13 @@ process.on("uncaughtException", (err) => {
 });
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: config.cloudinary.name,
+  api_key: config.cloudinary.apiKey,
+  api_secret: config.cloudinary.apiSecret,
 });
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = config.port;
 
 const getTrustProxyConfig = (value) => {
   if (value === "true") return true;
@@ -34,14 +33,18 @@ const getTrustProxyConfig = (value) => {
 
 // Set TRUST_PROXY when deployed behind a trusted reverse proxy/load balancer so
 // req.ip reflects the client IP used by the rate limiter.
-if (process.env.TRUST_PROXY) {
-  app.set("trust proxy", getTrustProxyConfig(process.env.TRUST_PROXY));
+if (config.trustProxy) {
+  app.set("trust proxy", getTrustProxyConfig(config.trustProxy));
 }
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
+  config.frontendUrl,
   "http://localhost:5173",
 ];
+
+// Security headers — registered early so every response includes them.
+import securityHeaders from "./middleware/securityHeaders.js";
+app.use(securityHeaders);
 
 app.use(
   cors({
@@ -57,10 +60,24 @@ app.use(
 );
 
 import rateLimiter from "./middleware/rateLimiter.js";
+import { inputSanitizer } from "./middleware/inputSanitizer.js";
+import responseWrapper from "./middleware/responseWrapper.js";
+
+import webhookRouter from "./route/webhookRoute.js";
 
 app.use(cookieParser());
+// Webhook route must be registered BEFORE express.json() so it can process the raw body
+app.use("/api/webhook", webhookRouter);
+
 app.use(express.json());
+app.use(responseWrapper);
+app.use(inputSanitizer);
 app.use(requestLogger);
+
+// Health check routes — registered BEFORE rate limiter so monitoring
+// probes (Docker HEALTHCHECK, load balancers) are never rate-limited.
+import healthRouter from "./route/healthRoutes.js";
+app.use("/api/health", healthRouter);
 
 // Apply rate limiter to all API endpoints
 app.use("/api", rateLimiter({ max: 200, windowMs: 15 * 60 * 1000 }));
@@ -99,16 +116,68 @@ app.use("/api/garage", garageRouter)
 // Error middleware should be registered AFTER routes so it can catch downstream errors.
 app.use(errorMiddleware);
 
+// ── Server startup ──────────────────────────────────────────────────
+// Store the HTTP server reference so we can shut it down cleanly.
+import mongoose from "mongoose";
+
+let server;
+
 connectDB().then(() => {
-  app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+  server = app.listen(PORT, () =>
+    console.log(`Server is running on port ${PORT}`)
+  );
 });
 
+// ── Graceful shutdown ───────────────────────────────────────────────
+// Handles SIGTERM (sent by Docker/Kubernetes on container stop) and
+// SIGINT (Ctrl+C during local development). Ensures in-flight requests
+// complete, and the database connection is closed cleanly.
+
+const SHUTDOWN_TIMEOUT_MS = 10_000; // 10 seconds max wait
+
+const gracefulShutdown = (signal) => {
+  console.log(`\n${signal} received. Starting graceful shutdown...`);
+
+  // Set a hard deadline — force-exit if shutdown hangs
+  const forceExit = setTimeout(() => {
+    console.error("Graceful shutdown timed out. Forcing exit.");
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+
+  // Allow the process to exit even if the timer is still running
+  forceExit.unref();
+
+  if (server) {
+    // Stop accepting new connections and wait for in-flight requests
+    server.close(async () => {
+      console.log("HTTP server closed. No longer accepting connections.");
+
+      try {
+        await mongoose.connection.close();
+        console.log("MongoDB connection closed.");
+      } catch (err) {
+        console.error("Error closing MongoDB connection:", err.message);
+      }
+
+      process.exit(0);
+    });
+  } else {
+    process.exit(0);
+  }
+};
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// ── Unhandled Rejection Handler ─────────────────────────────────────
+// Uses server.close() (the HTTP server) instead of app.close() which
+// doesn't exist on Express instances.
 process.on("unhandledRejection", (err) => {
   console.error(`Error: ${err.message}`);
   console.error(`Shutting down the server due to Unhandled Promise Rejection`);
 
-  if (app && typeof app.close === "function") {
-    app.close(() => {
+  if (server && typeof server.close === "function") {
+    server.close(() => {
       process.exit(1);
     });
   } else {

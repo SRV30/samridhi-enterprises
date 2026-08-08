@@ -3,10 +3,7 @@ import axiosInstance from "@/api";
 
 const API_URL = "/api/support";
 
-const authConfig = () => {
-  const token = localStorage.getItem("token");
-  return { headers: { Authorization: `Bearer ${token}` } };
-};
+const authConfig = () => ({});
 
 // ── User: create ticket ──
 export const createTicket = createAsyncThunk(

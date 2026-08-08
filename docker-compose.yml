@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  # ── MongoDB ────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:6
+    container_name: samridhi-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: samridhi_enterprises
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - samridhi-network
+
+  # ── Backend (Express API) ──────────────────────────────────────────
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: samridhi-server
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 5000
+      MONGODB_URL: mongodb://mongodb:27017/samridhi_enterprises
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRE: ${JWT_EXPIRE:-5d}
+      COOKIE_EXPIRE: ${COOKIE_EXPIRE:-7}
+      BREVO_API_KEY: ${BREVO_API_KEY:-dummy}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL:-noreply@samridhienterprises.com}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-Samridhi Enterprises}
+      CLOUDINARY_NAME: ${CLOUDINARY_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      OTP_MODE: ${OTP_MODE:-dev}
+    networks:
+      - samridhi-network
+
+  # ── Frontend (Vite Dev Server) ─────────────────────────────────────
+  client:
+    image: node:18-alpine
+    container_name: samridhi-client
+    working_dir: /app
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - client_node_modules:/app/node_modules
+    environment:
+      VITE_BACKEND_URL: http://localhost:${PORT:-5000}
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - server
+    networks:
+      - samridhi-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  client_node_modules:
+    driver: local
+
+networks:
+  samridhi-network:
+    driver: bridge

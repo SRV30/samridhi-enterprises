@@ -7,13 +7,12 @@ export const loginUser = createAsyncThunk(
     try {
       const response = await axiosInstance.post("/api/user/login", credentials);
 
-      const { token, user, verifyEmail } = response.data;
+      const { user, verifyEmail } = response.data;
 
       localStorage.setItem("verifyEmail", verifyEmail);
       localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("token", token);
 
-      return { user, token, verifyEmail };
+      return { user, verifyEmail };
     } catch (error) {
       return rejectWithValue(error.response?.data);
     }
@@ -26,7 +25,6 @@ export const logoutUser = createAsyncThunk(
     try {
       const response = await axiosInstance.get("/api/user/logout");
       localStorage.removeItem("user");
-      localStorage.removeItem("token");
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -67,12 +65,7 @@ export const getSingleDetail = createAsyncThunk(
   "auth/getSingleDetail",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axiosInstance.get("/api/user/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axiosInstance.get("/api/user/me");
       console.log("API Response:", response.data);
 
       return response.data;
@@ -90,18 +83,9 @@ export const updateProfile = createAsyncThunk(
   "auth/updateProfile",
   async (formData, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        return rejectWithValue("User is not authenticated");
-      }
       const response = await axiosInstance.put(
         "/api/user/update-user",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        formData
       );
 
       // The update endpoint returns the user under `user` (and `data` for
@@ -128,7 +112,6 @@ export const uploadAvatar = createAsyncThunk(
   "auth/uploadAvatar",
   async (avatarFile, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("avatar", avatarFile);
 
@@ -138,8 +121,6 @@ export const uploadAvatar = createAsyncThunk(
         {
           headers: {
             "Content-Type": "multipart/form-data",
-
-            Authorization: `Bearer ${token}`,
           },
           withCredentials: true,
         }
@@ -159,7 +140,6 @@ export const updatePassword = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await axiosInstance.put(
         "/api/user/update/password",
         {
@@ -170,7 +150,6 @@ export const updatePassword = createAsyncThunk(
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           withCredentials: true,
         }
@@ -239,14 +218,10 @@ export const getAllUsers = createAsyncThunk(
   "auth/fetchusers",
   async ({ page = 1, limit = 10, search = "" }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const { data } = await axiosInstance.get(
         `/api/user/admin/get?page=${page}&limit=${limit}&search=${search}`,
         {
           withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       );
       return data;
@@ -263,12 +238,8 @@ export const getSingleUser = createAsyncThunk(
   "auth/getSingle",
   async (id, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const { data } = await axiosInstance.get(`/api/user/admin/get/${id}`, {
         withCredentials: true,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
       return data;
     } catch (error) {
@@ -284,15 +255,9 @@ export const updateUserStatus = createAsyncThunk(
   "auth/updateUserStatus",
   async ({ userId, status }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await axiosInstance.patch(
         `/api/user/admin/${userId}/status`,
-        { status },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { status }
       );
       return response.data;
     } catch (error) {
@@ -306,15 +271,11 @@ export const updateUserRole = createAsyncThunk(
   "admin/updateUserRole",
   async ({ email, role }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await axiosInstance.put(
         "/api/user/admin/update",
         { email, role },
         {
           withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       );
       return response.data;
@@ -329,12 +290,8 @@ export const deleteUser = createAsyncThunk(
   "auth/deleteUser",
   async (userId, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       await axiosInstance.delete(`/api/user/admin/delete/${userId}`, {
         withCredentials: true,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
       return userId;
     } catch (error) {
@@ -358,13 +315,11 @@ const safeParseUser = () => {
 };
 
 const storedUser = safeParseUser();
-const storedToken = localStorage.getItem("token") || null;
 const storedVerifyEmail = localStorage.getItem("verifyEmail") === "true";
 
 const initialState = {
   user: storedUser,
-  isAuthenticated: !!storedToken,
-  token: storedToken,
+  isAuthenticated: !!storedUser,
   loading: false,
   error: null,
   users: [],
@@ -405,7 +360,6 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.isAuthenticated = true;
-        state.token = action.payload.token;
         state.verifyEmail = action.payload.verifyEmail;
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -420,7 +374,6 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
-        state.token = null;
         state.verifyEmail = false;
         localStorage.removeItem("verifyEmail");
       })

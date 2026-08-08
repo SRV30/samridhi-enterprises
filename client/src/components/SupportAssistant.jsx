@@ -98,7 +98,7 @@ const SupportAssistant = () => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         aria-label={open ? "Close support assistant" : "Open support assistant"}
-        className="fixed bottom-20 right-5 sm:bottom-6 sm:right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/30 transition hover:shadow-xl"
+        className="fixed bottom-24 right-5 sm:right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/30 transition hover:shadow-xl"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </motion.button>
@@ -112,7 +112,7 @@ const SupportAssistant = () => {
             transition={{ duration: 0.2 }}
             role="dialog"
             aria-label="Customer support assistant"
-            className="fixed bottom-36 right-5 sm:bottom-24 sm:right-6 z-40 flex h-[28rem] max-h-[70vh] w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-2xl"
+            className="fixed bottom-42 right-5 sm:right-6 z-50 flex h-[28rem] max-h-[70vh] w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white">

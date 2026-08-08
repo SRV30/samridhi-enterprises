@@ -111,7 +111,7 @@ export const resetGuestCart = () => {
   return getGuestCart();
 };
 
-export const syncGuestCart = async (token) => {
+export const syncGuestCart = async () => {
   const guestCart = getGuestCart();
 
   if (!guestCart.items.length) {
@@ -125,11 +125,6 @@ export const syncGuestCart = async (token) => {
         partId: getItemPartId(item),
         quantity: item.quantity,
       })),
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     }
   );
 

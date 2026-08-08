@@ -9,6 +9,10 @@ const partSchema = new mongoose.Schema(
     name: { type: String, required: true },
     description: String,
 
+    warehouseStocks: [{
+      warehouse: { type: mongoose.Schema.Types.ObjectId, ref: "Warehouse" },
+      stockQuantity: { type: Number, default: 0 }
+    }],
     price: {
       type: Number,
       required: true,
@@ -19,6 +23,10 @@ const partSchema = new mongoose.Schema(
       required: true,
       default: 1,
       min: 0,
+    },
+    lowStockThreshold: {
+      type: Number,
+      default: 5,
     },
 
     vehicleCompatibility: [
@@ -96,6 +104,7 @@ const partSchema = new mongoose.Schema(
           name: { type: String, required: true },
           rating: { type: Number, required: true, min: 1, max: 5 },
           comment: { type: String, required: true },
+          verifiedPurchase: { type: Boolean, default: false },
           createdAt: { type: Date, default: Date.now },
         },
       ],
@@ -140,3 +149,6 @@ const partSchema = new mongoose.Schema(
 
 export default mongoose.model("Part", partSchema);
 
+
+// Add Text Index on name and description for full text search
+partSchema.index({ name: 'text', description: 'text' });

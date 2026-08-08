@@ -12,6 +12,7 @@ import {
 } from "../../store/order/orderSlice";
 import Loader from "../../extras/Loader";
 import ConfirmationModal from "../../extras/ConfirmationModal";
+import { generateOrderInvoicePDF } from "../../utils/invoicePDFGenerator.js";
 
 // The fulfilment stages a normal order moves through, in order. Used by the
 // customer-facing tracker so a buyer can see how far along their order is.
@@ -208,6 +209,16 @@ const generateReceiptPDF = (order, user) => {
   doc.save(`receipt-${order._id}.pdf`);
 };
 
+const getTrackingUrl = (carrier, trackingNumber) => {
+  if (!trackingNumber) return null;
+  const c = (carrier || "").toLowerCase();
+  if (c.includes("blue dart")) return `https://www.bluedart.com/tracking?trackNumber=${trackingNumber}`;
+  if (c.includes("dtdc")) return `https://www.dtdc.in/tracking/shipment-tracking.asp`;
+  if (c.includes("delhivery")) return `https://www.delhivery.com/track/package/${trackingNumber}`;
+  if (c.includes("india post")) return `https://www.indiapost.gov.in/`;
+  return `https://www.google.com/search?q=${encodeURIComponent((carrier || "") + " tracking " + trackingNumber)}`;
+};
+
 const OrderHistory = () => {
   const dispatch = useDispatch();
   const { myOrders, loading, error } = useSelector((state) => state.order);
@@ -240,6 +251,22 @@ const OrderHistory = () => {
       dispatch(clearOrderError());
     }
   }, [error, dispatch]);
+
+  const handleDownloadInvoice = async (orderId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/orders/${orderId}/invoice`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Failed to fetch invoice");
+      const htmlStr = await response.text();
+      const win = window.open("", "_blank");
+      win.document.write(htmlStr);
+      win.document.close();
+    } catch (err) {
+      toast.error("Failed to download invoice");
+    }
+  };
 
   if (loading) return <Loader />;
 
@@ -323,6 +350,48 @@ const OrderHistory = () => {
                     <OrderTracker orderStatus={order.orderStatus} />
                   )}
 
+                {/* Shipment & Tracking Details */}
+                {(order.carrier || order.trackingNumber) && (
+                  <div className="bg-blue-50/70 dark:bg-blue-950/40 rounded-2xl p-4 my-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-blue-100 dark:border-blue-900">
+                    <div>
+                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-1">
+                        Shipment Tracking
+                      </p>
+                      <p className="text-sm text-gray-700 dark:text-gray-200">
+                        {order.carrier && <span className="font-semibold">{order.carrier}: </span>}
+                        <span className="font-mono">{order.trackingNumber || "N/A"}</span>
+                      </p>
+                    </div>
+                    {order.trackingNumber && (
+                      <a
+                        href={getTrackingUrl(order.carrier, order.trackingNumber)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-xl shadow transition"
+                      >
+                        Track Shipment ↗
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Status History Timeline */}
+                {order.statusHistory && order.statusHistory.length > 0 && (
+                  <div className="my-4 border-t border-gray-100 dark:border-gray-800 pt-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      Status History Timeline
+                    </p>
+                    <div className="space-y-1.5 text-xs">
+                      {order.statusHistory.map((sh, idx) => (
+                        <div key={idx} className="flex justify-between text-gray-600 dark:text-gray-300">
+                          <span className="font-medium">• {sh.status}</span>
+                          <span className="text-gray-400">{formatDate(sh.changedAt)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2 mb-4">
                   {order.items.map((item, idx) => (
                     <div
@@ -363,6 +432,18 @@ const OrderHistory = () => {
                           : "Cancel Order"}
                       </button>
                     )}
+                    <button
+                      onClick={() => handleDownloadInvoice(order._id)}
+                      disabled={!canDownload}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-semibold text-sm shadow hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      title={
+                        canDownload
+                          ? "Download HTML Invoice"
+                          : "Invoice available after order is confirmed"
+                      }
+                    >
+                      Download Invoice
+                    </button>
                     <button
                       onClick={() => generateReceiptPDF(order, user)}
                       disabled={!canDownload}

@@ -847,9 +847,16 @@ const SingleProduct = () => {
                             {(review.name || "A").charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                              {review.name || "Anonymous"}
-                            </h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                                {review.name || "Anonymous"}
+                              </h4>
+                              {review.verifiedPurchase && (
+                                <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-green-200 dark:border-green-800">
+                                  ✓ Verified Purchase
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2">
                               <div className="flex">
                                 {[...Array(5)].map((_, i) => (

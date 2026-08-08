@@ -1,20 +1,32 @@
+import config from "../config/index.js";
+
 const sendToken = (user, statusCode, res) => {
   const token = user.getJWTToken();
 
   const options = {
     expires: new Date(
-      Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
+      Date.now() + (config.jwt.cookieExpire || Number(process.env.COOKIE_EXPIRE) || 7) * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    secure: config.isProduction || process.env.NODE_ENV === "production",
+    sameSite: (config.isProduction || process.env.NODE_ENV === "production") ? "None" : "Lax",
     path: "/",
   };
 
-  res.status(statusCode).cookie("token", token, options).json({
+  res.cookie("token", token, options);
+  if (typeof res.sendSuccess === "function") {
+    return res.sendSuccess(
+      {
+        user,
+        verifyEmail: user.verifyEmail,
+      },
+      statusCode
+    );
+  }
+
+  res.status(statusCode).json({
     success: true,
     user,
-    token,
     verifyEmail: user.verifyEmail,
   });
 };

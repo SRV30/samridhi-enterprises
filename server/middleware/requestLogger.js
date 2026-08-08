@@ -1,3 +1,5 @@
+import config from "../config/index.js";
+
 const requestLogger = (req, res, next) => {
   const start = Date.now();
 
@@ -17,7 +19,7 @@ const requestLogger = (req, res, next) => {
       log.error = true;
     }
 
-    if (process.env.NODE_ENV !== "test") {
+    if (!config.isTest && process.env.NODE_ENV !== "test") {
       console.log(JSON.stringify(log));
     }
   });

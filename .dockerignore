@@ -1,0 +1,34 @@
+# Dependencies
+node_modules
+client/node_modules
+server/node_modules
+
+# Git
+.git
+.gitignore
+
+# Environment files (injected via docker-compose)
+.env
+client/.env
+server/.env
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# IDE and OS files
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+client/dist
+
+# Docker files (avoid recursive builds)
+Dockerfile
+docker-compose.yml
+.dockerignore

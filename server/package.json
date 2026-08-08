@@ -4,7 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "node scripts/verifyRateLimiter.js && node scripts/verifyPasswordReset.js",
+    "test": "node scripts/verifyConfig.js && node scripts/verifyRateLimiter.js && node scripts/verifyPasswordReset.js && node scripts/verifyResponseWrapper.js && node scripts/verifyRequestValidation.js",
     "test:rate-limiter": "node scripts/verifyRateLimiter.js",
     "start": "index.js",
     "dev": "nodemon index.js"
@@ -26,7 +26,9 @@
     "mongoose": "^9.7.2",
     "multer": "^2.0.1",
     "nodemon": "^3.1.10",
-    "sib-api-v3-sdk": "^8.5.0"
+    "sib-api-v3-sdk": "^8.5.0",
+    "stripe": "^22.4.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.2.0"

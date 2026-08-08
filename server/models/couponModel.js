@@ -61,9 +61,22 @@ const couponSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    perUserLimit: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    applicableCategories: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
   },
   { timestamps: true }
 );
+
+couponSchema.index({ discountType: 1, isActive: 1 });
 
 // Compute the rupee discount this coupon grants for a given order subtotal.
 // Returns 0 when the coupon does not apply to that subtotal. This is the single

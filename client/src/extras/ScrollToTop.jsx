@@ -30,7 +30,7 @@ const ScrollToTop = () => {
         transition: { duration: 0.3 },
       }}
       whileTap={{ scale: 0.95 }}
-      className="fixed bottom-30 right-8 z-50 flex items-center justify-center w-14 h-14 rounded-full 
+      className="fixed bottom-42 right-5 sm:right-6 z-40 flex items-center justify-center w-14 h-14 rounded-full 
                  bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-xl
                  border border-yellow-300 backdrop-blur-lg bg-opacity-30"
       aria-label="Scroll to top"

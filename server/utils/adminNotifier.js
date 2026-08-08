@@ -61,3 +61,12 @@ const notifyAdmins = async ({ preferenceKey, subject, html }) => {
 };
 
 export default notifyAdmins;
+
+// Added helper for low stock alert
+export const notifyAdminsOnLowStock = async (parts) => {
+  return notifyAdmins({
+    preferenceKey: "notifyAdminsOnLowStock",
+    subject: "Alert: Low Stock Items Detected",
+    html: `<h1>Low Stock Report</h1><p>${parts.length} parts are currently low on stock.</p>`
+  });
+};

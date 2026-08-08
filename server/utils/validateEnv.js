@@ -1,3 +1,5 @@
+import config from "../config/index.js";
+
 const MANDATORY = [
   "MONGODB_URL",
   "JWT_SECRET",
@@ -19,11 +21,11 @@ const OPTIONAL = [
   "NODE_ENV",
 ];
 
-const isOtpDevMode = () => process.env.OTP_MODE === "dev";
+const isOtpDevMode = () => config.security.otpMode === "dev" || process.env.OTP_MODE === "dev";
 
 const validateEnv = () => {
   const missing = MANDATORY.filter((key) => !process.env[key]);
-  const isProduction = process.env.NODE_ENV === "production";
+  const isProduction = config.isProduction;
 
   if (missing.length > 0) {
     console.error("\n\x1b[31m[ENV] Missing required environment variables:\x1b[0m");

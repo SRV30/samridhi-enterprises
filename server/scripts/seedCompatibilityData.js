@@ -25,10 +25,8 @@
  */
 
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 import BikeModel from "../models/bikeModel.js";
-
-dotenv.config();
+import config from "../config/index.js";
 
 // Illustrative sample compatibility values, cycled across models so that the
 // Year and Engine filters visibly split the catalogue during testing.
@@ -40,12 +38,13 @@ const SAMPLES = [
 ];
 
 async function run() {
-  if (!process.env.MONGODB_URL) {
+  const mongoUrl = config.mongodbUrl || process.env.MONGODB_URL;
+  if (!mongoUrl) {
     console.error("MONGODB_URL is not set. Aborting.");
     process.exit(1);
   }
 
-  await mongoose.connect(process.env.MONGODB_URL);
+  await mongoose.connect(mongoUrl);
   console.log("Connected to database.");
 
   const models = await BikeModel.find();
