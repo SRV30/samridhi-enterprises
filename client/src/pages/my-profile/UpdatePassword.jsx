@@ -6,14 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { updatePassword } from "@/store/auth-slice/user";
 import { Eye, EyeOff } from "lucide-react";
 import MetaData from "../../extras/MetaData";
+import { PASSWORD_REQUIREMENTS } from "../../utils/passwordRequirements";
 
-const passwordRequirements = [
-  { id: "length", label: "8+ characters", test: (pw) => pw.length >= 8 },
-  { id: "uppercase", label: "Uppercase letter (A-Z)", test: (pw) => /[A-Z]/.test(pw) },
-  { id: "lowercase", label: "Lowercase letter (a-z)", test: (pw) => /[a-z]/.test(pw) },
-  { id: "number", label: "Number (0-9)", test: (pw) => /\d/.test(pw) },
-  { id: "special", label: "Special character", test: (pw) => /[!@#$%^&*(),.?":{}|<>]/.test(pw) },
-];
 
 const UpdatePassword = () => {
   const dispatch = useDispatch();
@@ -45,7 +39,7 @@ const UpdatePassword = () => {
       toast.error("All fields are required!");
       return;
     }
-    const isAllRequirementsMet = passwordRequirements.every((req) => req.test(form.newPassword));
+    const isAllRequirementsMet = PASSWORD_REQUIREMENTS.every((req) => req.test(form.newPassword));
     if (!isAllRequirementsMet) {
       toast.error("Password does not meet complexity requirements!");
       return;
@@ -137,7 +131,7 @@ const UpdatePassword = () => {
                     >
                       <p className="font-semibold text-blue-900 mb-1">Password requirements:</p>
                       <div className="grid grid-cols-2 gap-2">
-                        {passwordRequirements.map((req) => {
+                        {PASSWORD_REQUIREMENTS.map((req) => {
                           const isMet = req.test(form.newPassword);
                           return (
                             <div key={req.id} className="flex items-center gap-2">
