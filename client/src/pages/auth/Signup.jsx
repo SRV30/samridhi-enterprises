@@ -6,14 +6,8 @@ import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { clearError, signupUser } from "@/store/auth-slice/user";
+import { PASSWORD_REQUIREMENTS } from "../../utils/passwordRequirements";
 
-const passwordRequirements = [
-  { id: "length", label: "8+ characters", test: (pw) => pw.length >= 8 },
-  { id: "uppercase", label: "Uppercase letter (A-Z)", test: (pw) => /[A-Z]/.test(pw) },
-  { id: "lowercase", label: "Lowercase letter (a-z)", test: (pw) => /[a-z]/.test(pw) },
-  { id: "number", label: "Number (0-9)", test: (pw) => /\d/.test(pw) },
-  { id: "special", label: "Special character", test: (pw) => /[!@#$%^&*(),.?":{}|<>]/.test(pw) },
-];
 
 const SignUp = () => {
   const [name, setName] = useState("");
@@ -31,7 +25,7 @@ const SignUp = () => {
       toast.error("Please fill in all fields");
       return;
     }
-    const isAllRequirementsMet = passwordRequirements.every((req) => req.test(password));
+    const isAllRequirementsMet = PASSWORD_REQUIREMENTS.every((req) => req.test(password));
     if (!isAllRequirementsMet) {
       toast.error("Password does not meet complexity requirements!");
       return;
@@ -195,7 +189,7 @@ const SignUp = () => {
               >
                 <p className="font-semibold text-blue-900 mb-1">Password requirements:</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {passwordRequirements.map((req) => {
+                  {PASSWORD_REQUIREMENTS.map((req) => {
                     const isMet = req.test(password);
                     return (
                       <div key={req.id} className="flex items-center gap-2">
