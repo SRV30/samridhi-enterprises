@@ -27,7 +27,6 @@
     "multer": "^2.0.1",
     "nodemon": "^3.1.10",
     "sib-api-v3-sdk": "^8.5.0",
-    "stripe": "^22.4.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -6,8 +6,8 @@ e-commerce platform split into two deployable units:
 - **`client/`** — A React 19 single-page application built with Vite.
 - **`server/`** — An Express 5 REST API backed by MongoDB (Mongoose).
 
-External services: **Cloudinary** (image storage), **Brevo** (transactional email / OTP),
-**Stripe** (payment processing).
+External services: **Cloudinary** (image storage) and **Brevo** (transactional email / OTP).
+Online payments use the store-managed UPI verification flow; there is no third-party payment gateway.
 
 ## High-level System Diagram
 
@@ -16,7 +16,7 @@ External services: **Cloudinary** (image storage), **Brevo** (transactional emai
 │           CLIENT            │  HTTPS  │            SERVER            │
 │  React + Vite SPA           │ ──────► │  Express REST API (/api/*)   │
 │                             │  JSON / │                              │
-│  • Redux Toolkit (state)    │  multipart                            │
+│  • Redux Toolkit (state)    │ multipart                            │
 │  • React Router (routing)   │         │  Route → Middleware →        │
 │  • Axios (HTTP, Bearer)     │ ◄────── │  Controller → Model          │
 │  • Tailwind CSS (styling)   │  JSON   │                              │
@@ -59,7 +59,7 @@ across both the client and server.
 
 ---
 
-> **📖 Full Documentation:** For the complete architecture deep-dive, see
+> **Full Documentation:** For the complete architecture deep-dive, see
 > [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md). For endpoint contracts, see
 > [`docs/API_REFERENCE.md`](./docs/API_REFERENCE.md). For database schemas, see
 > [`docs/DATABASE_SCHEMA.md`](./docs/DATABASE_SCHEMA.md).
