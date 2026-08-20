@@ -792,16 +792,13 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
   }
 
   const userId = req.params.id;
-  const user = await UserModel.findById(userId);
+  const user = await UserModel.findOne({
+    _id: userId,
+    ...(req.user.role === ROLES.ADMIN ? {} : { isDeleted: false }),
+  });
 
   if (!user) {
     return next(new ErrorHandler("User not found", 404));
-  }
-
-  if (user.isDeleted && req.user.role === "MANAGER") {
-    return next(
-      new ErrorHandler("Manager cannot manage soft-deleted users", 403)
-    );
   }
 
   if (user.avatar) {
