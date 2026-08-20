@@ -82,10 +82,10 @@ userRouter.get("/admin/get/:id", auth, admin, getSingleUser);
 
 import { auditLoggerMiddleware } from "../middleware/auditLoggerMiddleware.js";
 
-userRouter.put("/admin/update", auth, admin, auditLoggerMiddleware("user", "UPDATE_ROLE"), updateUserRole);
+userRouter.put("/admin/update", authOtpIpLimit, auth, admin, auditLoggerMiddleware("user", "UPDATE_ROLE"), updateUserRole);
 
-userRouter.delete("/admin/delete/:id", auth, admin, auditLoggerMiddleware("user", "DELETE_USER"), deleteUser);
+userRouter.delete("/admin/delete/:id", authOtpIpLimit, auth, admin, auditLoggerMiddleware("user", "DELETE_USER"), deleteUser);
 
-userRouter.patch("/admin/:id/status", auth, admin, auditLoggerMiddleware("user", "UPDATE_STATUS"), updateUserStatus);
+userRouter.patch("/admin/:id/status", authOtpIpLimit, auth, admin, auditLoggerMiddleware("user", "UPDATE_STATUS"), updateUserStatus);
 
 export default userRouter;
