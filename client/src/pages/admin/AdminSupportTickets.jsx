@@ -1,350 +1,39 @@
-// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import { ArrowLeft, LifeBuoy, Send, Clock, Filter, Inbox, MessageSquare, CheckCircle2, CircleDot } from "lucide-react";
 import { Link } from "react-router-dom";
-import {
-  ArrowLeft,
-  LifeBuoy,
-  Send,
-  Inbox,
-  Clock,
-  Filter,
-} from "lucide-react";
-import {
-  adminGetTickets,
-  adminGetTicket,
-  adminUpdateStatus,
-  adminReply,
-  clearCurrentTicket,
-  clearSupportError,
-} from "@/store/order/supportSlice";
+import { adminGetTickets, adminGetTicket, adminUpdateStatus, adminReply, clearCurrentTicket, clearSupportError } from "@/store/order/supportSlice";
 import Loader from "../../extras/Loader";
 import EmptyState from "../../components/EmptyState";
+import { AdminPageHeader, AdminCard, AdminBadge } from "@/components/admin/AdminUI";
+import { Button } from "@/components/ui";
 
-const STATUSES = ["Open", "In Progress", "Resolved", "Closed"];
-const CATEGORIES = ["Order", "Payment", "Product", "Shipping", "Account", "Other"];
+const STATUSES=["Open","In Progress","Resolved","Closed"];
+const CATEGORIES=["Order","Payment","Product","Shipping","Account","Other"];
+const variant=s=>s==="Open"?"info":s==="In Progress"?"warning":s==="Resolved"?"success":s==="Closed"?"neutral":"neutral";
+const formatDateTime=d=>new Date(d).toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
 
-const statusStyle = (status) => {
-  switch (status) {
-    case "Open":
-      return "bg-blue-100 text-blue-700";
-    case "In Progress":
-      return "bg-amber-100 text-amber-700";
-    case "Resolved":
-      return "bg-emerald-100 text-emerald-700";
-    case "Closed":
-      return "bg-gray-200 text-gray-600";
-    default:
-      return "bg-gray-100 text-gray-600";
-  }
-};
-
-const formatDateTime = (d) =>
-  new Date(d).toLocaleString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-const AdminSupportTickets = () => {
-  const dispatch = useDispatch();
-  const { tickets, current, loading, actionLoading, error } = useSelector(
-    (s) => s.support
-  );
-
-  const [statusFilter, setStatusFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [view, setView] = useState("list"); // "list" | "detail"
-  const [reply, setReply] = useState("");
-  const threadEndRef = useRef(null);
-
-  useEffect(() => {
-    dispatch(
-      adminGetTickets({ status: statusFilter, category: categoryFilter })
-    );
-  }, [dispatch, statusFilter, categoryFilter]);
-
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-      dispatch(clearSupportError());
-    }
-  }, [error, dispatch]);
-
-  useEffect(() => {
-    if (view === "detail" && threadEndRef.current) {
-      threadEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [current, view]);
-
-  const stats = useMemo(() => {
-    const open = tickets.filter((t) => t.status === "Open").length;
-    const inProgress = tickets.filter((t) => t.status === "In Progress").length;
-    const resolved = tickets.filter(
-      (t) => t.status === "Resolved" || t.status === "Closed"
-    ).length;
-    return { total: tickets.length, open, inProgress, resolved };
-  }, [tickets]);
-
-  const openTicket = (id) => {
-    dispatch(adminGetTicket(id));
-    setView("detail");
-  };
-
-  const backToList = () => {
-    dispatch(clearCurrentTicket());
-    setView("list");
-    dispatch(adminGetTickets({ status: statusFilter, category: categoryFilter }));
-  };
-
-  const handleStatusChange = async (status) => {
-    const res = await dispatch(adminUpdateStatus({ id: current._id, status }));
-    if (adminUpdateStatus.fulfilled.match(res)) toast.success(`Marked ${status}`);
-  };
-
-  const handleReply = async () => {
-    if (!reply.trim()) return;
-    const res = await dispatch(adminReply({ id: current._id, body: reply }));
-    if (adminReply.fulfilled.match(res)) setReply("");
-  };
-
-  if (loading && view === "list" && tickets.length === 0) return <Loader />;
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-28 pb-16 px-4">
-      <div className="max-w-6xl mx-auto">
-        <Link
-          to="/admin/dashboard"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-        </Link>
-
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 mb-8"
-        >
-          <div className="bg-blue-500 p-3 rounded-2xl">
-            <LifeBuoy className="w-7 h-7 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Support Tickets</h1>
-            <p className="text-gray-600">
-              Manage and respond to customer support requests
-            </p>
-          </div>
-        </motion.div>
-
-        {/* ── LIST VIEW ── */}
-        {view === "list" && (
-          <>
-            {/* Summary cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              {[
-                { label: "Total", value: stats.total },
-                { label: "Open", value: stats.open },
-                { label: "In Progress", value: stats.inProgress },
-                { label: "Resolved", value: stats.resolved },
-              ].map((s) => (
-                <div
-                  key={s.label}
-                  className="bg-white/80 backdrop-blur-sm rounded-2xl shadow border border-white/20 p-5"
-                >
-                  <p className="text-sm text-gray-500">{s.label}</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">{s.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-              <span className="inline-flex items-center gap-1 text-sm text-gray-500">
-                <Filter className="w-4 h-4" /> Filter:
-              </span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-              >
-                <option value="">All statuses</option>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-              >
-                <option value="">All categories</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Ticket list */}
-            {tickets.length === 0 ? (
-              <EmptyState
-                icon="Inbox"
-                title="No tickets found"
-                message={tickets.length > 0 ? "No tickets match the current filters. Try adjusting your search criteria." : "No support tickets have been raised yet."}
-              />
-            ) : (
-              <div className="space-y-3">
-                {tickets.map((t) => (
-                  <button
-                    key={t._id}
-                    onClick={() => openTicket(t._id)}
-                    className="w-full text-left bg-white/80 backdrop-blur-sm rounded-2xl shadow border border-white/20 p-5 hover:shadow-md transition"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">
-                          {t.subject}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {t.user?.name || "Customer"} · {t.category} ·{" "}
-                          <span className="inline-flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatDateTime(t.lastActivityAt)}
-                          </span>
-                        </p>
-                      </div>
-                      <span
-                        className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${statusStyle(
-                          t.status
-                        )}`}
-                      >
-                        {t.status}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ── DETAIL VIEW ── */}
-        {view === "detail" && current && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <button
-              onClick={backToList}
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to tickets
-            </button>
-
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow border border-white/20 overflow-hidden">
-              <div className="px-6 py-4 border-b">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                      {current.subject}
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                      {current.user?.name || "Customer"}
-                      {current.user?.email ? ` · ${current.user.email}` : ""} ·{" "}
-                      {current.category} · {current.priority} priority
-                    </p>
-                  </div>
-                  <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusStyle(
-                      current.status
-                    )}`}
-                  >
-                    {current.status}
-                  </span>
-                </div>
-
-                {/* Status controls */}
-                <div className="flex flex-wrap items-center gap-2 mt-4">
-                  <span className="text-sm text-gray-500">Set status:</span>
-                  {STATUSES.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => handleStatusChange(s)}
-                      disabled={actionLoading || current.status === s}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition disabled:opacity-100 ${
-                        current.status === s
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Thread */}
-              <div className="p-6 space-y-4 max-h-[420px] overflow-y-auto">
-                {current.messages.map((m, idx) => (
-                  <div
-                    key={m._id || idx}
-                    className={`flex ${
-                      m.sender === "ADMIN" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-                        m.sender === "ADMIN"
-                          ? "bg-blue-600 text-white rounded-br-sm"
-                          : "bg-gray-100 text-gray-800 rounded-bl-sm"
-                      }`}
-                    >
-                      <p className="text-xs font-medium opacity-80 mb-0.5">
-                        {m.sender === "ADMIN"
-                          ? m.senderName || "Support Team"
-                          : m.senderName || "Customer"}
-                      </p>
-                      <p className="whitespace-pre-wrap text-sm">{m.body}</p>
-                      <p className="text-[10px] opacity-70 mt-1 text-right">
-                        {formatDateTime(m.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                <div ref={threadEndRef} />
-              </div>
-
-              {/* Reply box */}
-              <div className="px-6 py-4 border-t flex items-end gap-3">
-                <textarea
-                  value={reply}
-                  onChange={(e) => setReply(e.target.value)}
-                  rows={2}
-                  placeholder="Type your reply to the customer…"
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
-                />
-                <button
-                  onClick={handleReply}
-                  disabled={actionLoading || !reply.trim()}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-60"
-                >
-                  <Send className="w-4 h-4" />
-                  Send
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default AdminSupportTickets;
+export default function AdminSupportTickets(){
+ const dispatch=useDispatch(); const {tickets=[],current,loading,actionLoading,error}=useSelector(s=>s.support);
+ const [statusFilter,setStatusFilter]=useState(""); const [categoryFilter,setCategoryFilter]=useState(""); const [view,setView]=useState("list"); const [reply,setReply]=useState(""); const threadEndRef=useRef(null);
+ useEffect(()=>{dispatch(adminGetTickets({status:statusFilter,category:categoryFilter}))},[dispatch,statusFilter,categoryFilter]);
+ useEffect(()=>{if(error){toast.error(error);dispatch(clearSupportError())}},[error,dispatch]);
+ useEffect(()=>{if(view==="detail")threadEndRef.current?.scrollIntoView({behavior:"smooth"})},[current,view]);
+ const stats=useMemo(()=>({total:tickets.length,open:tickets.filter(t=>t.status==="Open").length,inProgress:tickets.filter(t=>t.status==="In Progress").length,resolved:tickets.filter(t=>["Resolved","Closed"].includes(t.status)).length}),[tickets]);
+ const openTicket=id=>{dispatch(adminGetTicket(id));setView("detail")};
+ const backToList=()=>{dispatch(clearCurrentTicket());setView("list");dispatch(adminGetTickets({status:statusFilter,category:categoryFilter}))};
+ const handleStatusChange=async status=>{const res=await dispatch(adminUpdateStatus({id:current._id,status}));if(adminUpdateStatus.fulfilled.match(res))toast.success(`Marked ${status}`)};
+ const handleReply=async()=>{if(!reply.trim())return;const res=await dispatch(adminReply({id:current._id,body:reply.trim()}));if(adminReply.fulfilled.match(res))setReply("")};
+ if(loading&&view==="list"&&!tickets.length)return <Loader/>;
+ return <div className="min-h-screen bg-[var(--surface-1)] p-3 sm:p-5 lg:p-7"><div className="max-w-[1400px] mx-auto space-y-5">
+  <AdminPageHeader title="Support Operations" subtitle="Resolve customer conversations and keep support moving." icon={<LifeBuoy className="w-6 h-6"/>} badge={`${stats.open} open`} actions={<Link to="/admin/dashboard"><Button variant="outline" className="!gap-2"><ArrowLeft className="w-4 h-4"/>Dashboard</Button></Link>}/>
+  {view==="list"&&<>
+   <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">{[[MessageSquare,"Total",stats.total,"text-blue-600 bg-blue-500/10"],[CircleDot,"Open",stats.open,"text-amber-600 bg-amber-500/10"],[Clock,"In Progress",stats.inProgress,"text-violet-600 bg-violet-500/10"],[CheckCircle2,"Resolved",stats.resolved,"text-emerald-600 bg-emerald-500/10"]].map(([I,l,v,t],i)=><motion.div key={l} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:i*.05}} className="premium-card p-4"><div className="flex justify-between items-start"><div><p className="text-[9px] uppercase tracking-[.15em] font-extrabold text-[var(--text-muted)]">{l}</p><p className="text-xl sm:text-2xl font-black mt-2">{v}</p></div><span className={`w-9 h-9 rounded-xl grid place-items-center ${t}`}><I className="w-4 h-4"/></span></div></motion.div>)}</div>
+   <AdminCard className="!p-3"><div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--text-muted)]"><Filter className="w-4 h-4"/>Filters</span><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className="h-10 rounded-xl border border-[var(--line)] bg-[var(--surface-0)] px-3 text-sm font-semibold"><option value="">All statuses</option>{STATUSES.map(s=><option key={s}>{s}</option>)}</select><select value={categoryFilter} onChange={e=>setCategoryFilter(e.target.value)} className="h-10 rounded-xl border border-[var(--line)] bg-[var(--surface-0)] px-3 text-sm font-semibold"><option value="">All categories</option>{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></div></AdminCard>
+   {tickets.length===0?<EmptyState icon="Inbox" title="No tickets found" message="No support tickets match the current filters."/>:<AdminCard title="Customer conversations" subtitle="Select a ticket to review the conversation and respond."><div className="divide-y divide-[var(--line)] -mx-5">{tickets.map(t=><button key={t._id} onClick={()=>openTicket(t._id)} className="w-full text-left px-5 py-4 hover:bg-[var(--surface-2)] transition"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-bold text-sm truncate">{t.subject}</p><p className="text-xs text-[var(--text-muted)] mt-1 truncate">{t.user?.name||"Customer"} · {t.category} · {formatDateTime(t.lastActivityAt)}</p></div><AdminBadge variant={variant(t.status)}>{t.status}</AdminBadge></div></button>)}</div></AdminCard>}
+  </>}
+  {view==="detail"&&current&&<motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}}><button onClick={backToList} className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-strong)] mb-3"><ArrowLeft className="w-4 h-4"/>Back to tickets</button><AdminCard title={current.subject} subtitle={`${current.user?.name||"Customer"}${current.user?.email?` · ${current.user.email}`:""} · ${current.category} · ${current.priority} priority`}><div className="flex flex-wrap items-center gap-2 pb-4 border-b border-[var(--line)]"><span className="text-xs font-bold text-[var(--text-muted)]">Status</span>{STATUSES.map(s=><button key={s} onClick={()=>handleStatusChange(s)} disabled={actionLoading||current.status===s} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition disabled:opacity-100 ${current.status===s?"bg-blue-600 text-white border-blue-600":"border-[var(--line)] hover:bg-[var(--surface-2)]"}`}>{s}</button>)}</div><div className="p-2 sm:p-4 space-y-4 max-h-[520px] overflow-y-auto">{(current.messages||[]).map((m,idx)=><div key={m._id||idx} className={`flex ${m.sender==="ADMIN"?"justify-end":"justify-start"}`}><div className={`max-w-[85%] rounded-2xl px-4 py-3 ${m.sender==="ADMIN"?"bg-blue-600 text-white rounded-br-sm":"bg-[var(--surface-2)] text-[var(--text-strong)] rounded-bl-sm"}`}><p className="text-[11px] font-bold opacity-80 mb-1">{m.sender==="ADMIN"?m.senderName||"Support Team":m.senderName||"Customer"}</p><p className="text-sm whitespace-pre-wrap break-words">{m.body}</p><p className="text-[10px] opacity-70 mt-1 text-right">{formatDateTime(m.createdAt)}</p></div></div>)}<div ref={threadEndRef}/></div><div className="pt-4 border-t border-[var(--line)] flex flex-col sm:flex-row items-stretch sm:items-end gap-3"><textarea value={reply} onChange={e=>setReply(e.target.value)} rows={3} maxLength={4000} placeholder="Type your reply to the customer…" className="flex-1 rounded-xl border border-[var(--line)] bg-[var(--surface-0)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none"/><Button onClick={handleReply} disabled={actionLoading||!reply.trim()} className="!gap-2"><Send className="w-4 h-4"/>Send reply</Button></div></AdminCard></motion.div>}
+ </div></div>;
+}
