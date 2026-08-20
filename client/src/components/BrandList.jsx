@@ -1,132 +1,53 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBrands } from "../store/product/brandSlice";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 
 export default function BrandList() {
   const dispatch = useDispatch();
   const { brands, loading, error } = useSelector((state) => state.brand);
-
   const scrollRef = useRef(null);
   const [showScroll, setShowScroll] = useState(false);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
 
+  useEffect(() => { dispatch(fetchBrands()); }, [dispatch]);
   useEffect(() => {
-    dispatch(fetchBrands());
-  }, [dispatch]);
-
-  const updateScrollButtons = () => {
-    const container = scrollRef.current;
-    if (!container) return;
-
-    const { scrollLeft, scrollWidth, clientWidth } = container;
-    setShowScroll(scrollWidth > clientWidth);
-    setAtStart(scrollLeft <= 0);
-    setAtEnd(scrollLeft + clientWidth >= scrollWidth - 5);
-  };
-
-  useEffect(() => {
-    updateScrollButtons();
-    const container = scrollRef.current;
-    if (container) {
-      container.addEventListener("scroll", updateScrollButtons);
-      window.addEventListener("resize", updateScrollButtons);
-    }
-    return () => {
-      if (container) {
-        container.removeEventListener("scroll", updateScrollButtons);
-        window.removeEventListener("resize", updateScrollButtons);
-      }
+    const update = () => {
+      const el = scrollRef.current;
+      if (!el) return;
+      setShowScroll(el.scrollWidth > el.clientWidth);
+      setAtStart(el.scrollLeft <= 0);
+      setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 5);
     };
+    update();
+    const el = scrollRef.current;
+    el?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => { el?.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
   }, [brands]);
 
-  if (loading) return <div className="text-center py-8 text-blue-500">Loading...</div>;
-  if (error) return <div className="text-center text-red-500">{error}</div>;
+  if (loading) return <section className="max-w-[1440px] mx-auto px-3 sm:px-5 lg:px-7 py-8"><div className="h-5 w-28 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /></section>;
+  if (error) return <section className="max-w-[1440px] mx-auto px-3 sm:px-5 lg:px-7 py-6 text-sm text-red-500">{error}</section>;
 
-  const sortedBrands = [...brands].sort((a, b) =>
-    a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-  );
-
-  const scrollBy = 240;
-
-  const handleScroll = (direction) => {
-    const container = scrollRef.current;
-    if (container) {
-      container.scrollBy({
-        left: direction === "left" ? -scrollBy : scrollBy,
-        behavior: "smooth",
-      });
-    }
-  };
+  const sortedBrands = [...brands].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+  const scrollBy = (amount) => scrollRef.current?.scrollBy({ left: amount, behavior: "smooth" });
 
   return (
-    <div
-      id="top-brands"
-      className="relative px-4 py-6 group w-full max-w-7xl mx-auto"
-    >
-      <motion.h2
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-12xl md:text-3xl font-bold mb-4 text-blue-500 dark:text-blue-400 text-center"
-      >
-        Top Brands
-      </motion.h2>
-
-      {showScroll && !atStart && isHovered && (
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 text-blue-500 dark:text-blue-400 shadow-lg p-2 rounded-full z-10"
-          onClick={() => handleScroll("left")}
-        >
-          <ChevronLeft size={22} />
-        </motion.button>
-      )}
-
-      {showScroll && !atEnd && isHovered && (
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 text-blue-500 dark:text-blue-400 shadow-lg p-2 rounded-full z-10"
-          onClick={() => handleScroll("right")}
-        >
-          <ChevronRight size={22} />
-        </motion.button>
-      )}
-
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto no-scrollbar justify-center scroll-smooth pb-2"
-      >
-        {sortedBrands.map((brand) => (
-          <Link
-            key={brand._id}
-            to={`/products?brand=${encodeURIComponent(brand.name)}`}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-              className="min-w-[120px] md:min-w-[140px] lg:min-w-[160px] flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex flex-col items-center hover:scale-105 transition-transform duration-300 cursor-pointer"
-            >
-              <img
-                src={brand.images[0]?.url}
-                alt={brand.name}
-                className="w-16 h-16 md:w-20 md:h-20 object-contain mb-3"
-              />
-              <span className="text-sm md:text-base font-semibold text-blue-500 dark:text-blue-400 text-center uppercase">
-                {brand.name}
-              </span>
-            </motion.div>
-          </Link>
-        ))}
+    <section id="top-brands" className="max-w-[1440px] mx-auto px-3 sm:px-5 lg:px-7 py-8 sm:py-10">
+      <div className="flex items-end justify-between mb-4">
+        <div><p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-blue-600 mb-1">Trusted compatibility</p><h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--text-strong)]">Top Brands</h2></div>
+        <Link to="/products" className="hidden sm:flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700">View All Brands <ArrowRight className="w-3.5 h-3.5" /></Link>
       </div>
-    </div>
+      <div className="relative group">
+        {showScroll && !atStart && <button onClick={() => scrollBy(-280)} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-[var(--surface-0)] border border-[var(--line)] shadow-lg grid place-items-center text-[var(--text-strong)]" aria-label="Previous brands"><ChevronLeft className="w-4 h-4" /></button>}
+        {showScroll && !atEnd && <button onClick={() => scrollBy(280)} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-[var(--surface-0)] border border-[var(--line)] shadow-lg grid place-items-center text-[var(--text-strong)]" aria-label="Next brands"><ChevronRight className="w-4 h-4" /></button>}
+        <div ref={scrollRef} className="flex gap-3 overflow-x-auto no-scrollbar snap-x">
+          {sortedBrands.map((brand) => <Link key={brand._id} to={`/products?brand=${encodeURIComponent(brand.name)}`} className="snap-start shrink-0 w-[140px] sm:w-[160px]"><motion.div whileHover={{ y: -2 }} className="premium-card h-24 sm:h-28 px-4 flex flex-col items-center justify-center gap-2 hover:border-blue-500 transition-colors"><div className="h-12 w-24 flex items-center justify-center"><img src={brand.images?.[0]?.url} alt={brand.name} className="max-h-12 max-w-full object-contain" loading="lazy" /></div><span className="text-[11px] font-bold text-[var(--text-strong)] uppercase tracking-wide">{brand.name}</span></motion.div></Link>)}
+        </div>
+      </div>
+    </section>
   );
 }

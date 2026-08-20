@@ -41,8 +41,12 @@ export const fetchBrands = createAsyncThunk(
 // Update Brand
 export const updateBrand = createAsyncThunk(
   "brand/update",
-  async ({ id, formData }, { rejectWithValue }) => {
+  async ({ id, formData, updatedData }, { rejectWithValue }) => {
     try {
+      const payload = formData || updatedData;
+      if (!payload) {
+        return rejectWithValue("Brand update data is required");
+      }
       const config = {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -50,7 +54,7 @@ export const updateBrand = createAsyncThunk(
       };
       const response = await axiosInstance.put(
         `${API_URL}/update/${id}`,
-        formData,
+        payload,
         config
       );
       return response.data;
@@ -93,7 +97,6 @@ const brandSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Add Brand
       .addCase(addBrand.pending, (state) => {
         state.loading = true;
         state.success = false;
@@ -108,8 +111,6 @@ const brandSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
-      // Fetch Brands
       .addCase(fetchBrands.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -122,8 +123,6 @@ const brandSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
-      // Update Brand
       .addCase(updateBrand.pending, (state) => {
         state.loading = true;
         state.success = false;
@@ -143,8 +142,6 @@ const brandSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
-      // Delete Brand
       .addCase(deleteBrand.pending, (state) => {
         state.loading = true;
         state.success = false;

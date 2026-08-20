@@ -1,6 +1,6 @@
 # Dependency vulnerability scanning for both npm workspaces.
-#  - dependency-review: blocks a PR that INTRODUCES a high-severity advisory
-#    (it never fails on pre-existing ones).
+#  - dependency-review: runs npm audit against a generated lockfile so
+#    repositories without committed lockfiles can still be audited.
 #  - npm-audit: full advisory report for each workspace, reported (not gated)
 #    so existing advisories are visible without blocking every PR. Runs weekly.
 name: "Dependency Audit"
@@ -31,6 +31,9 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: "20"
+      - name: Generate lockfile
+        working-directory: ${{ matrix.workspace }}
+        run: npm install --package-lock-only --ignore-scripts
       - name: Run npm audit (${{ matrix.workspace }})
         working-directory: ${{ matrix.workspace }}
         run: npm audit --audit-level=high
@@ -50,6 +53,9 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: "20"
+      - name: Generate lockfile
+        working-directory: ${{ matrix.workspace }}
+        run: npm install --package-lock-only --ignore-scripts
       - name: Run npm audit (${{ matrix.workspace }})
         working-directory: ${{ matrix.workspace }}
         continue-on-error: true
