@@ -1,7 +1,6 @@
 import React from 'react';
-import Header from './Header';
-import Footer from './Footer';
 import PremiumFooter from './PremiumFooter';
+import Header from './Header';
 import Navbar from './Navbar';
 import SupportAssistant from './SupportAssistant';
 import CompareTray from './CompareTray';
@@ -14,7 +13,6 @@ export const RootLayout = ({ children }) => (
     <Navbar />
     <main id="main-content" tabIndex={-1} className="flex-grow">{children}</main>
     <PremiumFooter />
-    <Footer className="hidden" />
     <SessionTimeoutHandler />
     <SupportAssistant />
     <CompareTray />
