@@ -26,7 +26,7 @@ const UpdateProfile = lazy(() => import("./pages/my-profile/UpdateProfile"));
 const AdminBrandPage = lazy(() => import("./pages/admin/AdminBrandPage"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminBikeModelPage = lazy(() => import("./pages/admin/AdminBikePage"));
-const AdminPartPage = lazy(() => import("./pages/admin/AdminPartPage"));
+const AdminPartPage = lazy(() => import("./pages/admin/PremiumPartsPage"));
 const SingleProductPage = lazy(() => import("./pages/products/PremiumProductDetails"));
 const Cart = lazy(() => import("./pages/PremiumCart"));
 const ProductsPage = lazy(() => import("./pages/products/ProductsPage"));
