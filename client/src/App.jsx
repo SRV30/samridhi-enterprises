@@ -19,6 +19,10 @@ import './styles/globals.css';
 
 // --- Issue #412: Shared Root Layout Import ---
 import RootLayout from "./components/RootLayout";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import SupportAssistant from "./components/SupportAssistant";
+import CompareTray from "./components/CompareTray";
 
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/auth/Login"));
