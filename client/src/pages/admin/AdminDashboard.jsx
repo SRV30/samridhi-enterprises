@@ -1,164 +1,33 @@
-// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  IndianRupee,
-  ShoppingCart,
-  Users,
-  AlertTriangle,
-  Building2,
-  Car,
-  Wrench,
-  ClipboardList,
-  CreditCard,
-  PackageSearch,
-  UsersRound,
-  Tag,
-  LifeBuoy,
-  LayoutDashboard,
-} from "lucide-react";
+import { IndianRupee, ShoppingCart, Users, AlertTriangle, Building2, Car, Wrench, ClipboardList, CreditCard, PackageSearch, UsersRound, Tag, LifeBuoy, LayoutDashboard, ArrowUpRight, Boxes, Clock3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { adminGetDashboardAnalytics } from "@/store/order/orderSlice";
 import AdminAnalytics from "./AdminAnalytics";
 import { AdminPageHeader, AdminCard, AdminBadge } from "@/components/admin/AdminUI";
-import { RecommendationAnalyticsWidget } from "@/components/admin/RecommendationAnalyticsWidget";
 
-const formatINR = (n) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(n || 0);
-
+const formatINR = (n) => new Intl.NumberFormat("en-IN", { style:"currency", currency:"INR", maximumFractionDigits:0 }).format(n || 0);
 const quickLinks = [
-  { to: "/admin/orders", label: "Manage Orders", icon: ClipboardList },
-  { to: "/admin/brands", label: "Bike Brands", icon: Building2 },
-  { to: "/admin/bikes", label: "Bike Models", icon: Car },
-  { to: "/admin/parts", label: "Bike Parts", icon: Wrench },
-  { to: "/admin/inventory", label: "Inventory", icon: PackageSearch },
-  { to: "/admin/customers", label: "Customers", icon: UsersRound },
-  { to: "/admin/coupons", label: "Coupons", icon: Tag },
-  { to: "/admin/support", label: "Support Tickets", icon: LifeBuoy },
-  { to: "/admin/payment-settings", label: "Payment Settings", icon: CreditCard },
+ ["/admin/orders","Orders",ClipboardList], ["/admin/brands","Bike Brands",Building2], ["/admin/bikes","Bike Models",Car], ["/admin/parts","Parts",Wrench], ["/admin/inventory","Inventory",PackageSearch], ["/admin/customers","Customers",UsersRound], ["/admin/coupons","Coupons",Tag], ["/admin/support","Support",LifeBuoy], ["/admin/payment-settings","Payments",CreditCard]
 ];
+const statMeta = [["Total Revenue", "totalRevenue", IndianRupee, "emerald"],["Total Orders","totalOrders",ShoppingCart,"blue"],["Total Customers","totalCustomers",Users,"violet"],["Low Stock Items","lowStockCount",AlertTriangle,"amber"]];
+const tone = { emerald:"text-emerald-600 bg-emerald-500/10", blue:"text-blue-600 bg-blue-500/10", violet:"text-violet-600 bg-violet-500/10", amber:"text-amber-600 bg-amber-500/10" };
 
-const AdminDashboard = () => {
-  const dispatch = useDispatch();
-  const { analytics, loading } = useSelector((state) => state.order);
-
-  useEffect(() => {
-    dispatch(adminGetDashboardAnalytics());
-  }, [dispatch]);
-
-  const cards = [
-    {
-      title: "Total Revenue",
-      value: formatINR(analytics?.totalRevenue),
-      icon: <IndianRupee className="w-6 h-6 text-white" />,
-      color: "bg-emerald-600",
-    },
-    {
-      title: "Total Orders",
-      value: analytics?.totalOrders ?? 0,
-      icon: <ShoppingCart className="w-6 h-6 text-white" />,
-      color: "bg-blue-600",
-    },
-    {
-      title: "Total Customers",
-      value: analytics?.totalCustomers ?? 0,
-      icon: <Users className="w-6 h-6 text-white" />,
-      color: "bg-purple-600",
-    },
-    {
-      title: "Low Stock Items",
-      value: analytics?.lowStockCount ?? 0,
-      icon: <AlertTriangle className="w-6 h-6 text-white" />,
-      color: "bg-amber-600",
-    },
-  ];
-
-  const statusEntries = analytics?.ordersByStatus
-    ? Object.entries(analytics.ordersByStatus)
-    : [];
-
-  return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-      <AdminPageHeader
-        title="Admin Dashboard"
-        subtitle="Overview of revenue, order activity, inventory status, and quick management links."
-        icon={<LayoutDashboard className="w-6 h-6" />}
-        badge="Live Metrics"
-      />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {cards.map((card, i) => (
-          <motion.div
-            key={card.title}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className={`p-5 rounded-xl shadow-sm text-white ${card.color} flex items-center justify-between`}
-          >
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider opacity-90">
-                {card.title}
-              </span>
-              <div className="text-2xl font-black mt-1">
-                {loading && !analytics ? "…" : card.value}
-              </div>
-            </div>
-            <div className="bg-white/20 p-2.5 rounded-xl">{card.icon}</div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Order status breakdown */}
-      {statusEntries.length > 0 && (
-        <AdminCard title="Orders by Status" subtitle="Current count of orders across lifecycle states.">
-          <div className="flex flex-wrap gap-2.5">
-            {statusEntries.map(([status, count]) => (
-              <AdminBadge key={status} variant="info" className="!text-sm !py-1 !px-3">
-                {status}: <span className="font-bold ml-1">{count}</span>
-              </AdminBadge>
-            ))}
-          </div>
-        </AdminCard>
-      )}
-
-      {/* Out-of-stock alert */}
-      {analytics?.outOfStockCount > 0 && (
-        <div className="flex items-center gap-3 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 p-4 text-rose-700 dark:text-rose-300">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
-          <span className="text-sm font-medium">
-            {analytics.outOfStockCount} product
-            {analytics.outOfStockCount === 1 ? " is" : "s are"} out of stock and require restocking.
-          </span>
-        </div>
-      )}
-
-      {/* Management Quick Links */}
-      <AdminCard title="Quick Management" subtitle="Direct navigation to key admin modules.">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {quickLinks.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/40 p-4 text-center shadow-xs transition-all hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 group"
-            >
-              <Icon className="w-6 h-6 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">{label}</span>
-            </Link>
-          ))}
-        </div>
-      </AdminCard>
-
-      <RecommendationAnalyticsWidget analyticsData={{ overall: { impressions: 1420, clicks: 385 }, topRecommended: [{ name: "Brake Disc Pad" }] }} />
-
-      <AdminAnalytics />
-    </div>
-  );
-};
-
-export default AdminDashboard;
+export default function AdminDashboard(){
+ const dispatch=useDispatch(); const {analytics,loading}=useSelector(s=>s.order);
+ useEffect(()=>{dispatch(adminGetDashboardAnalytics())},[dispatch]);
+ const statuses=analytics?.ordersByStatus?Object.entries(analytics.ordersByStatus):[];
+ const totalStatus=statuses.reduce((n,[,v])=>n+Number(v||0),0);
+ return <div className="min-h-screen bg-[var(--surface-1)] p-3 sm:p-5 lg:p-7"><div className="max-w-[1500px] mx-auto space-y-5">
+  <AdminPageHeader title="Operations Dashboard" subtitle="A real-time command center for Samridhi Enterprises." icon={<LayoutDashboard className="w-6 h-6"/>} badge="Live"/>
+  <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">{statMeta.map(([title,key,Icon,t],i)=><motion.div key={key} initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:i*.06}} className="premium-card p-4 sm:p-5"><div className="flex items-start justify-between gap-2"><div><p className="text-[9px] uppercase tracking-[.16em] font-extrabold text-[var(--text-muted)]">{title}</p><p className="text-xl sm:text-2xl font-black mt-2">{loading&&!analytics?"…":key==="totalRevenue"?formatINR(analytics?.[key]):analytics?.[key]??0}</p></div><span className={`w-9 h-9 rounded-xl grid place-items-center ${tone[t]}`}><Icon className="w-4 h-4"/></span></div></motion.div>)}</div>
+  <div className="grid xl:grid-cols-[1.5fr_1fr] gap-5">
+   <AdminCard title="Order pipeline" subtitle="Current orders by lifecycle status."><div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{statuses.map(([status,count])=>{const pct=totalStatus?Math.round(Number(count)/totalStatus*100):0;return <div key={status} className="rounded-xl bg-[var(--surface-2)] p-4"><div className="flex justify-between items-center gap-2"><span className="text-xs font-bold capitalize truncate">{status.replace(/_/g," ")}</span><Clock3 className="w-3.5 h-3.5 text-[var(--text-muted)]"/></div><p className="text-xl font-black mt-2">{count}</p><div className="mt-3 h-1.5 rounded-full bg-[var(--line)] overflow-hidden"><div className="h-full bg-blue-600 rounded-full" style={{width:`${pct}%`}}/></div><p className="text-[9px] text-[var(--text-muted)] mt-1">{pct}% of orders</p></div>})}</div></AdminCard>
+   <AdminCard title="Inventory health" subtitle="Restocking signals that need attention."><div className="space-y-3"><div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 flex justify-between items-center"><div><p className="text-xs font-bold">Low stock</p><p className="text-[10px] text-[var(--text-muted)] mt-1">Items below threshold</p></div><strong className="text-xl text-amber-600">{analytics?.lowStockCount??0}</strong></div><div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex justify-between items-center"><div><p className="text-xs font-bold">Out of stock</p><p className="text-[10px] text-[var(--text-muted)] mt-1">Products unavailable</p></div><strong className="text-xl text-red-600">{analytics?.outOfStockCount??0}</strong></div><Link to="/admin/inventory" className="w-full h-10 rounded-xl bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-2">Open inventory <ArrowUpRight className="w-3.5 h-3.5"/></Link></div></AdminCard>
+  </div>
+  <AdminCard title="Quick management" subtitle="Jump directly into the operational modules."><div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">{quickLinks.map(([to,label,Icon])=><Link key={to} to={to} className="group rounded-xl border border-[var(--line)] bg-[var(--surface-0)] p-3 hover:border-blue-500 hover:-translate-y-0.5 transition"><Icon className="w-4 h-4 text-blue-600"/><p className="text-[10px] font-bold mt-3 leading-4">{label}</p><span className="text-[9px] text-[var(--text-muted)] group-hover:text-blue-600">Open</span></Link>)}</div></AdminCard>
+  {analytics?.outOfStockCount>0&&<div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 flex items-center gap-3 text-red-600"><AlertTriangle className="w-5 h-5 shrink-0"/><p className="text-xs font-semibold">{analytics.outOfStockCount} product{analytics.outOfStockCount===1?" is":"s are"} currently out of stock.</p></div>}
+  <AdminAnalytics/>
+ </div></div>
+}
