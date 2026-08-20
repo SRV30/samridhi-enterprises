@@ -11,17 +11,16 @@
     <meta property="og:type" content="website" />
     <title>Samridhi Enterprises</title>
     <script>
-      // Apply the saved (or OS-preferred) theme before first paint to avoid a
-      // flash of the wrong theme. Mirrors getInitialTheme in ThemeContext.
+      // Apply theme before first paint to prevent a light/dark flash.
       (function () {
         try {
           var t = localStorage.getItem("theme");
           if (t !== "light" && t !== "dark") {
-            t = window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
           }
-          if (t === "dark") document.documentElement.classList.add("dark");
+          document.documentElement.classList.toggle("dark", t === "dark");
+          document.documentElement.dataset.theme = t;
+          document.documentElement.style.colorScheme = t;
         } catch (e) {}
       })();
     </script>
