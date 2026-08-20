@@ -2,165 +2,85 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
-// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart, Trash2 } from "lucide-react";
-import {
-  fetchWishlist,
-  removeFromWishlist,
-  clearWishlistError,
-} from "../../store/wishlist/wishlistSlice";
+import { ArrowRight, Heart, ShoppingCart, Trash2, ShieldCheck, Truck } from "lucide-react";
+import { fetchWishlist, removeFromWishlist, clearWishlistError } from "../../store/wishlist/wishlistSlice";
 import { addToCart } from "../../store/cart/cartSlice";
 import Loader from "../../extras/Loader";
+import SEO from "../../components/SEO";
 
 const stockBadge = (stock) => {
-  if (stock > 15) return { label: "In Stock", cls: "bg-green-100 text-green-800" };
-  if (stock >= 5) return { label: "Low Stock", cls: "bg-yellow-100 text-yellow-800" };
-  if (stock > 0) return { label: "Few Left", cls: "bg-orange-100 text-orange-800" };
-  return { label: "Out of Stock", cls: "bg-red-100 text-red-800" };
+  if (stock > 15) return { label: "In Stock", cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" };
+  if (stock > 0) return { label: "Low Stock", cls: "bg-amber-500/10 text-amber-700 dark:text-amber-400" };
+  return { label: "Out of Stock", cls: "bg-red-500/10 text-red-600 dark:text-red-400" };
 };
+const money = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
 
 const WishlistPage = () => {
   const dispatch = useDispatch();
   const { wishlist, loading, error } = useSelector((state) => state.wishlist);
   const items = wishlist?.items || [];
 
-  useEffect(() => {
-    dispatch(fetchWishlist());
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-      dispatch(clearWishlistError());
-    }
-  }, [error, dispatch]);
+  useEffect(() => { dispatch(fetchWishlist()); }, [dispatch]);
+  useEffect(() => { if (error) { toast.error(error); dispatch(clearWishlistError()); } }, [error, dispatch]);
 
   const handleRemove = (partId) => {
-    dispatch(removeFromWishlist(partId))
-      .unwrap()
-      .then(() => toast.success("Removed from wishlist"))
-      .catch(() => {});
+    dispatch(removeFromWishlist(partId)).unwrap().then(() => toast.success("Removed from wishlist")).catch(() => {});
   };
-
   const handleAddToCart = (part) => {
     if (!part || part.stock <= 0) return;
-    dispatch(addToCart({ partId: part._id, quantity: 1 }))
-      .unwrap()
-      .then(() => toast.success("Added to cart"))
-      .catch((msg) => toast.error(msg || "Could not add to cart"));
+    dispatch(addToCart({ partId: part._id, quantity: 1 })).unwrap().then(() => toast.success("Added to cart")).catch((msg) => toast.error(msg || "Could not add to cart"));
   };
 
   if (loading && items.length === 0) return <Loader />;
 
-  if (items.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-28 pb-16 px-4">
-        <div className="max-w-2xl mx-auto text-center bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-10">
-          <Heart className="w-12 h-12 mx-auto text-blue-400 mb-4" />
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Your wishlist is empty
-          </h2>
-          <p className="text-gray-600 mb-8">
-            Save products you love and find them here anytime.
-          </p>
-          <Link
-            to="/products"
-            className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 mb-10"
-          >
-            Browse Products
-          </Link>
+  return (
+    <div className="min-h-screen bg-[var(--surface-1)] pt-24 sm:pt-28 pb-20">
+      <SEO title="My Wishlist | Samridhi Enterprises" description="Your saved automotive spare parts." />
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-7">
+          <div>
+            <p className="text-[10px] uppercase tracking-[.2em] font-extrabold text-blue-600">Saved for later</p>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[var(--text-strong)] mt-1">My Wishlist</h1>
+            <p className="text-sm text-[var(--text-muted)] mt-2">{items.length} {items.length === 1 ? "part" : "parts"} saved for your next ride.</p>
+          </div>
+          {items.length > 0 && <Link to="/products" className="text-xs font-bold text-blue-600 inline-flex items-center gap-1">Continue shopping <ArrowRight className="w-3.5 h-3.5" /></Link>}
+        </div>
 
-          <div className="w-full">
-            <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
-              Explore Popular Categories
-            </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              {["Lighting Products", "Filters & Horn", "Gaskets", "Rear View Mirror", "Switches / Locks"].map((cat) => (
-                <Link
-                  key={cat}
-                  to={`/products?search=${encodeURIComponent(cat)}`}
-                  className="px-4 py-2 bg-white/60 hover:bg-white text-gray-700 hover:text-blue-600 rounded-full border border-gray-200 shadow-sm hover:shadow transition-all duration-200 text-sm font-medium"
-                >
-                  {cat}
-                </Link>
-              ))}
+        {items.length === 0 ? (
+          <div className="premium-card overflow-hidden">
+            <div className="relative px-6 py-16 sm:py-20 text-center bg-[var(--surface-0)]">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-600/10 text-blue-600 grid place-items-center mb-5"><Heart className="w-8 h-8" /></div>
+              <h2 className="text-2xl font-extrabold text-[var(--text-strong)]">Your wishlist is empty</h2>
+              <p className="max-w-md mx-auto mt-2 text-sm leading-6 text-[var(--text-muted)]">Save genuine parts you want to compare, buy later, or keep ready for your next service.</p>
+              <Link to="/products" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-bold transition"><ShoppingCart className="w-4 h-4" /> Browse spare parts</Link>
+            </div>
+            <div className="grid sm:grid-cols-3 border-t border-[var(--line)]">
+              {[[ShieldCheck,"Genuine parts","Quality-focused catalogue"],[Truck,"Reliable delivery","Track your order anytime"],[Heart,"Save favourites","Keep parts ready for later"]].map(([Icon,title,text]) => <div key={title} className="p-5 flex items-center gap-3 border-b sm:border-b-0 sm:border-r last:border-0 border-[var(--line)]"><span className="w-10 h-10 shrink-0 rounded-xl bg-[var(--surface-2)] text-blue-600 grid place-items-center"><Icon className="w-5 h-5" /></span><div><p className="text-xs font-bold">{title}</p><p className="text-[10px] text-[var(--text-muted)] mt-0.5">{text}</p></div></div>)}
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 pt-28 pb-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-blue-600 bg-clip-text text-transparent mb-2">
-          My Wishlist
-        </h1>
-        <p className="text-gray-500 mb-10">
-          {items.length} {items.length === 1 ? "item" : "items"} saved
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map(({ part }) =>
-            part ? (
-              <motion.div
-                key={part._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden flex flex-col"
-              >
-                <Link to={`/products/${part._id}`} className="block">
-                  <img
-                    src={part.images?.[0]?.url || "https://via.placeholder.com/150"}
-                    alt={part.name}
-                    loading="lazy"
-                    className="w-full h-48 object-cover bg-gray-50"
-                  />
-                </Link>
-                <div className="p-5 flex-1 flex flex-col">
-                  <Link to={`/products/${part._id}`}>
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 capitalize mb-2 hover:text-blue-600 transition">
-                      {part.name}
-                    </h3>
-                  </Link>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xl font-bold text-gray-900">
-                      ₹{Number(part.price).toLocaleString()}
-                    </span>
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        stockBadge(part.stock).cls
-                      }`}
-                    >
-                      {stockBadge(part.stock).label}
-                    </span>
-                  </div>
-
-                  <div className="mt-auto flex items-center gap-2">
-                    <button
-                      onClick={() => handleAddToCart(part)}
-                      disabled={part.stock <= 0}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold text-sm shadow hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                      title={part.stock <= 0 ? "Out of stock" : "Add to cart"}
-                    >
-                      <ShoppingCart className="w-4 h-4" /> Add to Cart
-                    </button>
-                    <button
-                      onClick={() => handleRemove(part._id)}
-                      className="inline-flex items-center justify-center p-2.5 rounded-xl border border-red-300 text-red-600 hover:bg-red-50 transition-all"
-                      aria-label="Remove from wishlist"
-                      title="Remove from wishlist"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+        ) : (
+          <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {items.map(({ part }) => part && (
+              <motion.article key={part._id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="premium-card group overflow-hidden">
+                <div className="relative aspect-square bg-[var(--surface-2)] p-4 flex items-center justify-center">
+                  <Link to={`/products/${part._id}`} className="absolute inset-0 z-0" aria-label={`View ${part.name}`} />
+                  <img src={part.images?.[0]?.url || "/images/placeholder.jpg"} alt={part.name} loading="lazy" className="relative z-[1] w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 pointer-events-none" />
+                  <span className={`absolute top-3 left-3 z-10 px-2 py-1 rounded-full text-[9px] font-extrabold ${stockBadge(part.stock).cls}`}>{stockBadge(part.stock).label}</span>
+                  <button onClick={() => handleRemove(part._id)} className="absolute top-3 right-3 z-10 w-8 h-8 rounded-lg bg-[var(--surface-0)]/95 border border-[var(--line)] text-red-500 grid place-items-center hover:bg-red-50" aria-label="Remove from wishlist"><Trash2 className="w-4 h-4" /></button>
                 </div>
-              </motion.div>
-            ) : null
-          )}
-        </div>
+                <div className="p-4">
+                  <Link to={`/products/${part._id}`}>
+                    <span className="text-[9px] uppercase tracking-[.14em] font-extrabold text-blue-600">{part.category || "Spare Part"}</span>
+                    <h3 className="mt-1 text-sm font-bold leading-5 text-[var(--text-strong)] line-clamp-2 min-h-10 group-hover:text-blue-600">{part.name}</h3>
+                  </Link>
+                  <div className="mt-3 flex items-center justify-between gap-2"><span className="text-lg font-black text-[var(--text-strong)]">{money(part.price)}</span><span className="text-[9px] text-[var(--text-muted)]">{part.product_id}</span></div>
+                  <button onClick={() => handleAddToCart(part)} disabled={part.stock <= 0} className="mt-3 w-full h-10 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-xs font-bold inline-flex items-center justify-center gap-2 transition"><ShoppingCart className="w-4 h-4" />{part.stock > 0 ? "Add to Cart" : "Out of Stock"}</button>
+                </div>
+              </motion.article>
+            ))}
+          </motion.div>
+        )}
       </div>
     </div>
   );
