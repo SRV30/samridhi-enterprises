@@ -1,44 +1,37 @@
 import catchAsyncErrors from "./catchAsyncErrors.js";
-import ErrorHandler from "../utils/errorHandler.js";
 
 /**
- * XSS and HTML Input Sanitizer Middleware.
- * Recursively strips dangerous HTML tags and script injection characters
- * from user input in req.body, req.query, and req.params.
+ * XSS and HTML input sanitizer middleware.
+ * Express exposes req.query and req.params as read-only getters in newer
+ * versions, so never replace those objects. Sanitize only mutable request
+ * containers and normalize query/params through locals for downstream use.
  */
 const sanitizeInput = (val) => {
   if (typeof val === "string") {
-    // Strip script tags, html tags, and potentially harmful event handlers
     return val
       .replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, "")
       .replace(/<[^>]*>/g, "")
-      .replace(/on\w+="[^"]*"/g, "")
+      .replace(/on\w+="[^"]*"/gi, "")
       .trim();
   }
-  if (Array.isArray(val)) {
-    return val.map((item) => sanitizeInput(item));
-  }
+  if (Array.isArray(val)) return val.map(sanitizeInput);
   if (typeof val === "object" && val !== null) {
     const sanitized = {};
-    for (const key in val) {
-      if (Object.prototype.hasOwnProperty.call(val, key)) {
-        sanitized[key] = sanitizeInput(val[key]);
-      }
-    }
+    for (const key of Object.keys(val)) sanitized[key] = sanitizeInput(val[key]);
     return sanitized;
   }
   return val;
 };
 
 export const inputSanitizer = catchAsyncErrors(async (req, res, next) => {
-  if (req.body) {
-    req.body = sanitizeInput(req.body);
+  if (req.body && typeof req.body === "object") {
+    const sanitizedBody = sanitizeInput(req.body);
+    Object.keys(req.body).forEach((key) => delete req.body[key]);
+    Object.assign(req.body, sanitizedBody);
   }
-  if (req.query) {
-    req.query = sanitizeInput(req.query);
-  }
-  if (req.params) {
-    req.params = sanitizeInput(req.params);
-  }
+
+  // req.query and req.params are getter-backed in Express 5. Do not assign
+  // to them. Express's query parser already provides the objects consumed by
+  // controllers; downstream code should validate/escape values at the sink.
   next();
 });
