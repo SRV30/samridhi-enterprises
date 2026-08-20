@@ -4,12 +4,6 @@ import catchAsyncErrors from "../middleware/catchAsyncErrors.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import mongoose from "mongoose";
 
-/*
-  NOTE: getCart recalculates in-memory only and avoids unnecessary DB writes.
-*/
-
-
-
 const getOrCreateCart = async (userId) => {
   let cart = await Cart.findOne({ user: userId });
   if (!cart) {
@@ -71,7 +65,11 @@ export const syncCart = catchAsyncErrors(async (req, res) => {
     const partId = item.partId;
     const quantity = Number(item.quantity);
 
-    if (!mongoose.Types.ObjectId.isValid(partId) || !Number.isInteger(quantity) || quantity < 1) {
+    if (
+      !mongoose.Types.ObjectId.isValid(partId) ||
+      !Number.isInteger(quantity) ||
+      quantity < 1
+    ) {
       failedItems.push({
         partId,
         quantity: item.quantity,
@@ -81,7 +79,38 @@ export const syncCart = catchAsyncErrors(async (req, res) => {
     }
 
     try {
-      await addItemToCart(cart, partId, quantity);
+      const part = await Part.findById(partId);
+      if (!part) {
+        throw new ErrorHandler("Part not found", 404);
+      }
+      if (part.stock < quantity) {
+        throw new ErrorHandler("Insufficient stock", 400);
+      }
+
+      // Sync is idempotent: repeated startup/login synchronization must not
+      // keep adding the same guest-cart quantity to the server cart.
+      // If the server already has the item, keep the larger requested quantity
+      // and refresh its price/name from the current product record.
+      const itemIndex = cart.items.findIndex(
+        (cartItem) => cartItem.part.toString() === partId
+      );
+
+      if (itemIndex >= 0) {
+        const finalQuantity = Math.min(
+          Math.max(cart.items[itemIndex].quantity, quantity),
+          part.stock
+        );
+        cart.items[itemIndex].quantity = finalQuantity;
+        cart.items[itemIndex].price = part.price * finalQuantity;
+        cart.items[itemIndex].name = part.name;
+      } else {
+        cart.items.push({
+          part: partId,
+          quantity,
+          price: part.price * quantity,
+          name: part.name,
+        });
+      }
     } catch (error) {
       failedItems.push({
         partId,
@@ -100,15 +129,15 @@ export const syncCart = catchAsyncErrors(async (req, res) => {
   );
 
   res.sendSuccess({
-    warnings: failedItems.map((item) => `Could not sync item ${item.partId}: ${item.reason}`),
+    warnings: failedItems.map(
+      (item) => `Could not sync item ${item.partId}: ${item.reason}`
+    ),
     failedItems,
     cart: syncedCart,
   });
 });
 
 const recalculateCart = ({ populatedItems }) => {
-  // Returns in-memory adjusted items + warnings and a boolean indicating
-  // whether we must persist changes to DB.
   const warnings = [];
   const adjustedItems = [];
 
@@ -119,16 +148,16 @@ const recalculateCart = ({ populatedItems }) => {
   for (const item of populatedItems) {
     const part = item.part;
 
-    // Underlying part was deleted/unpopulated.
     if (part === null || part === undefined) {
       removedItems = true;
       continue;
     }
 
-    // Stock-out -> remove from cart.
     if (part.stock <= 0) {
       removedItems = true;
-      warnings.push(`${part.name} is out of stock and has been removed from your cart.`);
+      warnings.push(
+        `${part.name} is out of stock and has been removed from your cart.`
+      );
       continue;
     }
 
@@ -139,10 +168,11 @@ const recalculateCart = ({ populatedItems }) => {
     if (part.stock < requestedQty) {
       finalQty = part.stock;
       quantityChangedAny = true;
-      warnings.push(`Quantity for ${part.name} has been adjusted to ${part.stock} due to limited stock.`);
+      warnings.push(
+        `Quantity for ${part.name} has been adjusted to ${part.stock} due to limited stock.`
+      );
     }
 
-    // Compare stored unit price (based on stored total / quantity) with current unit price.
     const storedUnitPrice =
       requestedQty > 0 ? item.price / requestedQty : currentUnitPrice;
 
@@ -156,7 +186,6 @@ const recalculateCart = ({ populatedItems }) => {
       );
     }
 
-    // Only mutate if needed.
     const expectedPrice = currentUnitPrice * finalQty;
     if (finalQty !== requestedQty || expectedPrice !== item.price) {
       item.quantity = finalQty;
@@ -171,7 +200,6 @@ const recalculateCart = ({ populatedItems }) => {
 
   return { warnings, adjustedItems, recomputedTotal, needsSave };
 };
-
 
 export const getCart = catchAsyncErrors(async (req, res, next) => {
   let cart = await Cart.findOne({ user: req.user._id }).populate(
@@ -189,14 +217,9 @@ export const getCart = catchAsyncErrors(async (req, res, next) => {
   }
 
   const populatedItems = Array.isArray(cart.items) ? cart.items : [];
-  const {
-    warnings,
-    adjustedItems,
-    recomputedTotal,
-    needsSave,
-  } = recalculateCart({ populatedItems });
+  const { warnings, adjustedItems, recomputedTotal, needsSave } =
+    recalculateCart({ populatedItems });
 
-  // Apply in-memory changes regardless; we persist only if necessary.
   cart.items = adjustedItems;
   cart.total = recomputedTotal;
 
@@ -207,16 +230,14 @@ export const getCart = catchAsyncErrors(async (req, res, next) => {
   return res.sendSuccess({ warnings, cart });
 });
 
-
 export const updateCartItem = catchAsyncErrors(async (req, res, next) => {
   const { quantity } = req.body;
   const partId = req.params.partId;
 
-  // Quantity must be a whole number of at least 1. Without this guard a direct
-  // API call could send 0, a negative (which makes price negative), or a
-  // fractional quantity. The client clamps too, but the endpoint must validate.
   if (!Number.isInteger(quantity) || quantity < 1) {
-    return next(new ErrorHandler("Quantity must be a whole number of at least 1", 400));
+    return next(
+      new ErrorHandler("Quantity must be a whole number of at least 1", 400)
+    );
   }
 
   const cart = await Cart.findOne({ user: req.user._id });
@@ -253,18 +274,18 @@ export const removeFromCart = catchAsyncErrors(async (req, res, next) => {
   res.sendSuccess({ cart });
 });
 
-
 export const clearCart = catchAsyncErrors(async (req, res, next) => {
   const cart = await Cart.findOne({ user: req.user._id });
   if (!cart) return next(new ErrorHandler("Cart not found", 404));
 
-  console.log('Before clearing cart:', JSON.stringify(cart, null, 2));
   cart.items = [];
   cart.total = 0;
 
   await cart.save();
-  const clearedCart = await Cart.findOne({ user: req.user._id }).populate("items.part", "name price images stock");
-  console.log('Cleared cart:', JSON.stringify(clearedCart, null, 2));
+  const clearedCart = await Cart.findOne({ user: req.user._id }).populate(
+    "items.part",
+    "name price images stock"
+  );
   res.sendSuccess({ cart: clearedCart });
 });
 
@@ -279,4 +300,3 @@ export const cleanupStaleCarts = catchAsyncErrors(async (req, res, next) => {
     ...result,
   });
 });
-

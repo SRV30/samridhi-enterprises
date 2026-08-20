@@ -35,9 +35,10 @@ jobs:
 
       - name: Run Backend Integration & Rate Limiter Tests
         env:
-          MONGO_URI: mongodb://localhost:27017/samridhi-test
+          MONGODB_URL: mongodb://localhost:27017/samridhi-test
           JWT_SECRET: test_jwt_secret_key_12345
           JWT_EXPIRE: 7d
+          NODE_ENV: test
         run: |
           cd server
           npm test
