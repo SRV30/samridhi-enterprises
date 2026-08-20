@@ -1,183 +1,63 @@
 import React, { useState } from 'react';
 
-// ==========================================
-// 1. FORMS & INPUT PRIMITIVES
-// ==========================================
+const focus = 'focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20';
+const inputBase = `w-full px-3.5 py-2.5 border rounded-xl text-sm bg-[var(--surface-0)] text-[var(--text-strong)] placeholder:text-slate-400 border-[var(--line)] transition-all duration-200 ${focus}`;
 
 export const Button = ({ children, variant = 'primary', type = 'button', disabled = false, onClick, className = '' }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 focus:outline-none px-5 py-2.5 text-sm';
   const variants = {
-    primary: 'bg-[#2562EB] text-white hover:bg-[#1d4ed8] focus:ring-4 focus:ring-blue-200 disabled:bg-gray-300 disabled:text-gray-500',
-    secondary: 'bg-white text-[#2562EB] border border-[#2562EB] hover:bg-blue-50 focus:ring-4 focus:ring-blue-100',
-    outline: 'border border-gray-300 text-[#0F172A] hover:bg-gray-50 focus:ring-4 focus:ring-gray-100',
-    danger: 'bg-[#EF4444] text-white hover:bg-red-600 focus:ring-4 focus:ring-red-100'
+    primary: 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20 disabled:bg-slate-300 dark:disabled:bg-slate-700',
+    secondary: 'bg-[var(--surface-0)] text-blue-600 border border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40',
+    outline: 'border border-[var(--line)] text-[var(--text-strong)] hover:bg-[var(--surface-2)]',
+    danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm shadow-red-600/20'
   };
-  return (
-    <button type={type} disabled={disabled} onClick={onClick} className={`${baseStyles} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  );
+  return <button type={type} disabled={disabled} onClick={onClick} className={`inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 px-5 py-2.5 text-sm ${focus} ${variants[variant]} ${className}`}>{children}</button>;
 };
 
 export const Input = ({ type = 'text', placeholder, label, error, className = '', ...props }) => (
   <div className="w-full flex flex-col gap-1.5">
-    {label && <label className="text-sm font-medium text-[#0F172A]">{label}</label>}
-    <input type={type} placeholder={placeholder} className={`w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2562EB]/20 focus:border-[#2562EB] transition-all duration-200 ${error ? 'border-[#EF4444]' : 'border-gray-300'} ${className}`} {...props} />
-    {error && <span className="text-xs text-[#EF4444] font-medium">{error}</span>}
+    {label && <label className="text-sm font-semibold text-[var(--text-strong)]">{label}</label>}
+    <input type={type} placeholder={placeholder} className={`${inputBase} ${error ? 'border-red-500' : ''} ${className}`} {...props} />
+    {error && <span className="text-xs text-red-500 font-medium">{error}</span>}
   </div>
 );
 
 export const Textarea = ({ placeholder, label, error, rows = 3, className = '', ...props }) => (
   <div className="w-full flex flex-col gap-1.5">
-    {label && <label className="text-sm font-medium text-[#0F172A]">{label}</label>}
-    <textarea rows={rows} placeholder={placeholder} className={`w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2562EB]/20 focus:border-[#2562EB] transition-all duration-200 ${error ? 'border-[#EF4444]' : 'border-gray-300'} ${className}`} {...props} />
-    {error && <span className="text-xs text-[#EF4444] font-medium">{error}</span>}
+    {label && <label className="text-sm font-semibold text-[var(--text-strong)]">{label}</label>}
+    <textarea rows={rows} placeholder={placeholder} className={`${inputBase} resize-y ${error ? 'border-red-500' : ''} ${className}`} {...props} />
+    {error && <span className="text-xs text-red-500 font-medium">{error}</span>}
   </div>
 );
 
 export const Select = ({ label, options = [], error, className = '', ...props }) => (
   <div className="w-full flex flex-col gap-1.5">
-    {label && <label className="text-sm font-medium text-[#0F172A]">{label}</label>}
-    <select className={`w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2562EB]/20 focus:border-[#2562EB] transition-all duration-200 ${error ? 'border-[#EF4444]' : 'border-gray-300'} ${className}`} {...props}>
-      {options.map((opt, i) => <option key={i} value={opt.value}>{opt.label}</option>)}
-    </select>
-    {error && <span className="text-xs text-[#EF4444] font-medium">{error}</span>}
+    {label && <label className="text-sm font-semibold text-[var(--text-strong)]">{label}</label>}
+    <select className={`${inputBase} ${error ? 'border-red-500' : ''} ${className}`} {...props}>{options.map((opt, i) => <option key={i} value={opt.value}>{opt.label}</option>)}</select>
+    {error && <span className="text-xs text-red-500 font-medium">{error}</span>}
   </div>
 );
 
-export const Checkbox = ({ label, id, ...props }) => (
-  <div className="flex items-center gap-2">
-    <input type="checkbox" id={id} className="w-4 h-4 text-[#2562EB] border-gray-300 rounded focus:ring-[#2562EB]" {...props} />
-    {label && <label htmlFor={id} className="text-sm text-gray-700 select-none">{label}</label>}
-  </div>
-);
+export const Checkbox = ({ label, id, ...props }) => <label htmlFor={id} className="flex items-center gap-2 text-sm text-[var(--text-strong)] select-none cursor-pointer"><input type="checkbox" id={id} className="w-4 h-4 accent-blue-600" {...props} />{label}</label>;
+export const Radio = ({ label, name, id, ...props }) => <label htmlFor={id} className="flex items-center gap-2 text-sm text-[var(--text-strong)] select-none cursor-pointer"><input type="radio" id={id} name={name} className="w-4 h-4 accent-blue-600" {...props} />{label}</label>;
 
-export const Radio = ({ label, name, id, ...props }) => (
-  <div className="flex items-center gap-2">
-    <input type="radio" id={id} name={name} className="w-4 h-4 text-[#2562EB] border-gray-300 focus:ring-[#2562EB]" {...props} />
-    {label && <label htmlFor={id} className="text-sm text-gray-700 select-none">{label}</label>}
-  </div>
-);
-
-export const Toggle = ({ checked, onChange, label }) => (
-  <label className="flex items-center gap-3 cursor-pointer select-none">
-    <div className="relative">
-      <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
-      <div className={`w-10 h-6 rounded-full transition-colors ${checked ? 'bg-[#2562EB]' : 'bg-gray-300'}`}></div>
-      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${checked ? 'translate-x-4' : ''}`}></div>
-    </div>
-    {label && <span className="text-sm text-gray-700">{label}</span>}
-  </label>
-);
-
-// ==========================================
-// 2. DATA DISPLAY & FEEDBACK
-// ==========================================
+export const Toggle = ({ checked, onChange, label }) => <label className="flex items-center gap-3 cursor-pointer select-none"><div className="relative"><input type="checkbox" checked={checked} onChange={onChange} className="sr-only" /><div className={`w-10 h-6 rounded-full transition-colors ${checked ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}></div><div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${checked ? 'translate-x-4' : ''}`}></div></div>{label && <span className="text-sm text-[var(--text-strong)]">{label}</span>}</label>;
 
 export const Badge = ({ children, status = 'success', className = '' }) => {
-  const statuses = {
-    success: 'bg-[#22C55E]/10 text-[#22C55E]',
-    warning: 'bg-[#F59E0B]/10 text-[#F59E0B]',
-    error: 'bg-[#EF4444]/10 text-[#EF4444]',
-    info: 'bg-blue-50 text-[#2562EB]'
-  };
-  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statuses[status]} ${className}`}>{children}</span>;
+  const statuses = { success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', error: 'bg-red-500/10 text-red-600 dark:text-red-400', info: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' };
+  return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${statuses[status]} ${className}`}>{children}</span>;
 };
+export const Chip = ({ label, onDelete }) => <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[var(--surface-2)] text-[var(--text-strong)]">{label}{onDelete && <button onClick={onDelete} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold">×</button>}</span>;
+export const Loader = () => <div className="w-6 h-6 border-2 border-slate-200 dark:border-slate-700 border-t-blue-600 rounded-full animate-spin" />;
+export const Skeleton = ({ className = '' }) => <div className={`animate-pulse bg-slate-200 dark:bg-slate-700 rounded-lg ${className}`} />;
 
-export const Chip = ({ label, onDelete }) => (
-  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-    {label}
-    {onDelete && <button onClick={onDelete} className="text-gray-400 hover:text-gray-600 font-bold">×</button>}
-  </span>
-);
+export const ProductCard = ({ title, price, image, category, tag }) => <div className="premium-card p-4 hover:-translate-y-0.5 transition-transform relative">{tag && <Badge status="warning" className="absolute top-3 left-3 z-10">{tag}</Badge>}<div className="w-full h-40 bg-[var(--surface-1)] rounded-xl flex items-center justify-center mb-4 overflow-hidden">{image ? <img src={image} alt={title} className="object-contain h-full w-full" /> : <div className="text-slate-400">No Image</div>}</div><span className="text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wide">{category}</span><h4 className="font-semibold text-[var(--text-strong)] text-sm mt-1 line-clamp-1">{title}</h4><div className="flex items-center justify-between mt-3"><span className="font-bold text-blue-600 dark:text-blue-400">₹{price}</span><Button variant="primary" className="!px-3 !py-1.5 !text-xs">Add</Button></div></div>;
 
-export const Loader = () => (
-  <div className="w-6 h-6 border-2 border-gray-200 border-t-[#2562EB] rounded-full animate-spin"></div>
-);
+export const CategoryCard = ({ name, count, icon }) => <div className="premium-card p-4 flex items-center gap-4 hover:border-blue-500 cursor-pointer transition-colors"><div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-xl text-blue-600 dark:text-blue-400">{icon || '⚙️'}</div><div><h5 className="font-semibold text-[var(--text-strong)] text-sm">{name}</h5><span className="text-xs text-[var(--text-muted)]">{count}+ Products</span></div></div>;
 
-export const Skeleton = ({ className = '' }) => (
-  <div className={`animate-pulse bg-gray-200 rounded ${className}`}></div>
-);
+export const DashboardCard = ({ title, value, icon, trend, status = 'info' }) => { const colors = { info: 'bg-blue-600', success: 'bg-emerald-600', warning: 'bg-amber-500', danger: 'bg-red-600' }; return <div className="premium-card p-5 flex items-center justify-between"><div className="flex flex-col gap-1"><span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">{title}</span><span className="text-2xl font-bold text-[var(--text-strong)]">{value}</span>{trend && <span className="text-xs text-emerald-500 font-medium">{trend} ↑ <span className="text-[var(--text-muted)]">vs last month</span></span>}</div><div className={`w-12 h-12 ${colors[status]} text-white rounded-xl flex items-center justify-center text-xl`}>{icon}</div></div>; };
 
-// ==========================================
-// 3. ENTERPRISE CARDS
-// ==========================================
+export const Tabs = ({ tabs = [], activeTab, setActiveTab }) => <div className="flex border-b border-[var(--line)] w-full gap-6">{tabs.map(tab => <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === tab.id ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-strong)]'}`}>{tab.label}</button>)}</div>;
 
-export const ProductCard = ({ title, price, image, category, tag }) => (
-  <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow relative">
-    {tag && <Badge status="warning" className="absolute top-3 left-3">{tag}</Badge>}
-    <div className="w-full h-40 bg-gray-50 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
-      {image ? <img src={image} alt={title} className="object-contain h-full w-full" /> : <div className="text-gray-300">No Image</div>}
-    </div>
-    <span className="text-xs text-gray-400 font-medium uppercase">{category}</span>
-    <h4 className="font-semibold text-gray-800 text-sm mt-1 line-clamp-1">{title}</h4>
-    <div className="flex items-center justify-between mt-3">
-      <span className="font-bold text-[#2562EB]">₹{price}</span>
-      <Button variant="primary" className="!px-3 !py-1.5 !text-xs">Add</Button>
-    </div>
-  </div>
-);
+export const Accordion = ({ title, children }) => { const [isOpen, setIsOpen] = useState(false); return <div className="border border-[var(--line)] rounded-xl overflow-hidden bg-[var(--surface-0)]"><button onClick={() => setIsOpen(!isOpen)} className="w-full px-4 py-3 flex items-center justify-between font-semibold text-sm text-[var(--text-strong)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-colors"><span>{title}</span><span>{isOpen ? '−' : '+'}</span></button>{isOpen && <div className="p-4 border-t border-[var(--line)] text-sm text-[var(--text-muted)] bg-[var(--surface-0)]">{children}</div>}</div>; };
 
-export const CategoryCard = ({ name, count, icon }) => (
-  <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4 hover:border-[#2562EB] cursor-pointer transition-colors">
-    <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-xl text-[#2562EB]">{icon || '⚙️'}</div>
-    <div>
-      <h5 className="font-semibold text-gray-800 text-sm">{name}</h5>
-      <span className="text-xs text-gray-400">{count}+ Products</span>
-    </div>
-  </div>
-);
-
-export const DashboardCard = ({ title, value, icon, trend, status = 'info' }) => {
-  const colors = { info: 'bg-blue-500', success: 'bg-green-500', warning: 'bg-amber-500', danger: 'bg-red-500' };
-  return (
-    <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm flex items-center justify-between">
-      <div className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">{title}</span>
-        <span className="text-2xl font-bold text-gray-800">{value}</span>
-        {trend && <span className="text-xs text-green-500 font-medium">{trend} ↑ <span className="text-gray-400">vs last month</span></span>}
-      </div>
-      <div className={`w-12 h-12 ${colors[status]} text-white rounded-xl flex items-center justify-center text-xl shadow-sm`}>{icon}</div>
-    </div>
-  );
-};
-
-// ==========================================
-// 4. NAVIGATION & LAYOUT OVERLAYS
-// ==========================================
-
-export const Tabs = ({ tabs = [], activeTab, setActiveTab }) => (
-  <div className="flex border-b border-gray-200 w-full gap-6">
-    {tabs.map((tab) => (
-      <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === tab.id ? 'border-[#2562EB] text-[#2562EB]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-        {tab.label}
-      </button>
-    ))}
-  </div>
-);
-
-export const Accordion = ({ title, children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-      <button onClick={() => setIsOpen(!isOpen)} className="w-full px-4 py-3 flex items-center justify-between font-semibold text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors">
-        <span>{title}</span>
-        <span>{isOpen ? '−' : '+'}</span>
-      </button>
-      {isOpen && <div className="p-4 border-t border-gray-200 text-sm text-gray-600 bg-white">{children}</div>}
-    </div>
-  );
-};
-
-export const Modal = ({ isOpen, onClose, title, children }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-4 animate-fadeIn">
-      <div className="bg-white rounded-xl max-w-md w-full shadow-xl overflow-hidden p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
-        <h3 className="text-lg font-bold text-gray-900 border-b pb-3 mb-4">{title}</h3>
-        <div className="text-sm text-gray-600">{children}</div>
-      </div>
-    </div>
-  );
-};
+export const Modal = ({ isOpen, onClose, title, children }) => { if (!isOpen) return null; return <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-fadeIn"><div className="bg-[var(--surface-0)] rounded-2xl max-w-md w-full shadow-2xl overflow-hidden p-6 relative border border-[var(--line)]"><button onClick={onClose} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text-strong)] text-xl font-bold">×</button><h3 className="text-lg font-bold text-[var(--text-strong)] border-b border-[var(--line)] pb-3 mb-4">{title}</h3><div className="text-sm text-[var(--text-muted)]">{children}</div></div></div>; };
