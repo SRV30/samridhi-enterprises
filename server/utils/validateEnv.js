@@ -39,14 +39,12 @@ const validateEnv = () => {
   }
 
   if (isProduction) {
-    const missingOptional = OPTIONAL.filter(
-      (key) => !process.env[key] && key !== "PORT" && key !== "NODE_ENV" && key !== "OTP_MODE"
-    );
-    if (missingOptional.length > 0) {
-      console.error("\n\x1b[31m[ENV] Production requires these variables:\x1b[0m");
-      missingOptional.forEach((key) => console.error(`  \x1b[31m✗\x1b[0m ${key}`));
-      console.error("");
-      process.exit(1);
+    // Sender identity has safe defaults in config/index.js. It should not make
+    // the entire API unavailable when Brevo is not configured.
+    if (!process.env.BREVO_API_KEY) {
+      console.warn(
+        "\n\x1b[33m[ENV] BREVO_API_KEY is not configured — transactional email is disabled until it is set.\x1b[0m\n"
+      );
     }
   } else {
     const unset = OPTIONAL.filter((key) => !process.env[key]);
