@@ -3,135 +3,15 @@ import { useEffect, useState } from "react";
 import { clearAuthState, forgotPassword } from "@/store/auth-slice/user";
 import MetaData from "../../extras/MetaData";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
-// eslint-disable-next-line no-unused-vars
-import { motion, AnimatePresence } from "framer-motion";
-import { Mail } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Mail, ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState("");
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { loading, error, success } = useSelector((state) => state.auth);
-
-  const handleForgotPassword = () => {
-    if (!email) {
-      toast.error("Please enter a valid email!");
-      return;
-    }
-    dispatch(forgotPassword(email));
-  };
-
-  useEffect(() => {
-    if (success) {
-      toast.success("OTP sent! Please check your email.");
-      setTimeout(() => {
-        navigate("/verify-otp");
-      }, 2000);
-    }
-    if (error) {
-      toast.error(error);
-    }
-  }, [success, error, navigate]);
-
-  useEffect(() => {
-    return () => {
-      dispatch(clearAuthState());
-    };
-  }, [dispatch]);
-
-  const containerVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      transition: { duration: 0.6, ease: "easeOut", staggerChildren: 0.15 },
-    },
-    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.3 } },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30, scale: 0.9 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { duration: 0.5, ease: "easeOut" },
-    },
-  };
-
-  const buttonVariants = {
-    hover: { scale: 1.05, boxShadow: "0px 4px 20px rgba(59, 130, 246, 0.5)" },
-    tap: { scale: 0.98 },
-  };
-
-  const iconVariants = {
-    hover: { scale: 1.2, rotate: 10, transition: { duration: 0.3 } },
-  };
-
-  return (
-    <>
-      <MetaData title="Forgot Password | Samridhi Enterprises" description="Reset your Samridhi Enterprises account password securely. Enter your registered email to receive a password reset OTP." keywords="forgot password, reset password, bike parts account recovery, Samridhi Enterprises password" />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-100 px-4 sm:px-6 lg:px-8">
-        <AnimatePresence>
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="bg-white rounded-3xl shadow-xl border border-blue-200/50 backdrop-blur-sm p-6 sm:p-8 w-full max-w-md sm:max-w-lg"
-          >
-            <motion.h2
-              variants={itemVariants}
-              className="text-3xl sm:text-4xl font-serif font-semibold text-blue-800 mb-6 sm:mb-8 text-center tracking-tight"
-            >
-              Forgot Password
-            </motion.h2>
-            <motion.p
-              variants={itemVariants}
-              className="text-sm sm:text-base text-blue-700 text-center mb-6 sm:mb-8"
-            >
-              Enter your email, and we'll send you an OTP to reset your password.
-            </motion.p>
-
-            <motion.div variants={itemVariants} className="mt-6 relative">
-              <motion.div
-                variants={iconVariants}
-                whileHover="hover"
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500"
-              >
-                <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
-              </motion.div>
-              <label htmlFor="forgot-email" className="sr-only">
-                Email
-              </label>
-              <motion.input
-                id="forgot-email"
-                type="email"
-                autoComplete="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 sm:py-4 border border-blue-400 rounded-lg bg-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-blue-500/50 text-blue-800 text-sm sm:text-base transition-all duration-300"
-                whileFocus={{ scale: 1.02 }}
-              />
-            </motion.div>
-
-            <motion.button
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
-              onClick={handleForgotPassword}
-              disabled={loading}
-              className="w-full mt-6 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 text-sm sm:text-base"
-            >
-              {loading ? "Sending..." : "Send OTP"}
-            </motion.button>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </>
-  );
+  const [email, setEmail] = useState(""); const dispatch = useDispatch(); const navigate = useNavigate(); const { loading, error, success } = useSelector((state) => state.auth);
+  const submit = (e) => { e.preventDefault(); if (!email.trim()) return toast.error("Please enter your email"); dispatch(forgotPassword(email.trim())); };
+  useEffect(() => { if (success) { toast.success("OTP sent! Please check your email."); const timer = setTimeout(() => navigate("/verify-otp"), 1200); return () => clearTimeout(timer); } if (error) toast.error(error); }, [success, error, navigate]);
+  useEffect(() => () => { dispatch(clearAuthState()); }, [dispatch]);
+  return <><MetaData title="Forgot Password | Samridhi Enterprises" description="Recover your Samridhi Enterprises account securely." keywords="forgot password, account recovery, Samridhi Enterprises"/><main className="min-h-[calc(100vh-140px)] bg-[var(--surface-1)] px-4 py-10 sm:px-6"><motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="mx-auto w-full max-w-xl rounded-[2rem] border border-[var(--line)] bg-[var(--surface-0)] p-6 shadow-[0_24px_80px_rgba(15,23,42,.1)] sm:p-10 lg:p-14"><div className="mx-auto max-w-md"><div className="mb-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20"><ShieldCheck className="h-6 w-6"/></div><p className="text-xs font-bold uppercase tracking-[.18em] text-blue-600">Account recovery</p><h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--text-strong)]">Forgot your password?</h1><p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">Enter your registered email. We’ll send an OTP so you can securely create a new password.</p><form onSubmit={submit} className="mt-8 space-y-5"><label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-[.16em] text-[var(--text-muted)]">Email address</span><span className="relative block"><Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500"/><input id="forgot-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-1)] py-3.5 pl-11 pr-4 text-sm text-[var(--text-strong)] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"/></span></label><motion.button whileHover={{ y: -1 }} whileTap={{ scale: .98 }} disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 disabled:opacity-60">{loading ? "Sending OTP…" : <>Send OTP <ArrowRight className="h-4 w-4"/></>}</motion.button></form><div className="mt-7 flex justify-center"><Link to="/login" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--text-muted)] hover:text-blue-600"><ArrowLeft className="h-4 w-4"/>Back to sign in</Link></div></div></motion.div></main></>;
 };
-
 export default ForgotPassword;
