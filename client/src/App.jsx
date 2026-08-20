@@ -28,7 +28,7 @@ const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminBikeModelPage = lazy(() => import("./pages/admin/AdminBikePage"));
 const AdminPartPage = lazy(() => import("./pages/admin/AdminPartPage"));
 const SingleProductPage = lazy(() => import("./pages/products/PremiumProductDetails"));
-const Cart = lazy(() => import("./pages/Cart"));
+const Cart = lazy(() => import("./pages/PremiumCart"));
 const ProductsPage = lazy(() => import("./pages/products/ProductsPage"));
 const ComparePage = lazy(() => import("./pages/products/ComparePage"));
 const WishlistPage = lazy(() => import("./pages/wishlist/WishlistPage"));
@@ -46,7 +46,6 @@ const NotFoundPage = lazy(() => import("./extras/NotFoundPage"));
 
 function App() {
   const dispatch = useDispatch();
-
   useEffect(() => {
     if (localStorage.getItem("user")) {
       dispatch(fetchCart());
@@ -59,9 +58,7 @@ function App() {
     <ThemeProvider>
       <RootLayout>
         <ToastContainer position="top-center" autoClose={5000} />
-        <div className="fixed bottom-6 right-6 z-50">
-          <ThemeToggle />
-        </div>
+        <div className="fixed bottom-6 right-6 z-50"><ThemeToggle /></div>
         <ScrollToTop />
         <main id="main-content" tabIndex={-1}>
           <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader fullScreen={false} /></div>}>
