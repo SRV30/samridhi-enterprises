@@ -39,7 +39,7 @@ const AdminSupportTickets = lazy(() => import("./pages/admin/AdminSupportTickets
 const MyAddresses = lazy(() => import("./pages/my-profile/MyAddresses"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminPaymentSettings = lazy(() => import("./pages/admin/AdminPaymentSettings"));
-const InventoryPage = lazy(() => import("./pages/admin/InventoryPage"));
+const InventoryPage = lazy(() => import("./pages/admin/PremiumInventoryPage"));
 const CustomerPage = lazy(() => import("./pages/admin/CustomerPage"));
 const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
 const NotFoundPage = lazy(() => import("./extras/NotFoundPage"));
