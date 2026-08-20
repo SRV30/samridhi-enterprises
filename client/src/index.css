@@ -1,26 +1,17 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: light;
-}
+/* Tailwind v4: make `dark:` utilities follow the application's .dark class. */
+@custom-variant dark (&:where(.dark, .dark *));
 
-html.dark {
-  color-scheme: dark;
-}
-
-body {
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-html.dark body {
-  background-color: #0b1220;
-  color: #e5e7eb;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+:root { color-scheme: light; }
+html.dark { color-scheme: dark; }
+html, body, #root { min-height: 100%; }
+body { margin: 0; transition: background-color 0.25s ease, color 0.25s ease; }
+html.dark body { background-color: #0b1220; color: #e5e7eb; }
+html.dark input,
+html.dark textarea,
+html.dark select,
+html.dark button { color-scheme: dark; }
+html.dark { background: #0b1220; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
