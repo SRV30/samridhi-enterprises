@@ -1,162 +1,17 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-// eslint-disable-next-line no-unused-vars
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { resendOtp, verifyEmailOtp } from "@/store/auth-slice/otpSlice";
 import { toast } from "react-toastify";
 import MetaData from "../../extras/MetaData";
+import { MailCheck, ArrowRight, RefreshCw } from "lucide-react";
 
-const VerifyEmail = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const { loading, successMessage, verifyEmail } = useSelector(
-    (state) => state.otp
-  );
-  const { user, isAuthenticated } = useSelector((state) => state.auth);
-  const [otp, setOtp] = useState("");
-
+export default function VerifyEmail() {
+  const dispatch = useDispatch(); const navigate = useNavigate(); const location = useLocation(); const { loading, successMessage, verifyEmail } = useSelector((s) => s.otp); const { user, isAuthenticated } = useSelector((s) => s.auth); const [otp, setOtp] = useState("");
   const redirect = location.search ? location.search.split("=")[1] : (isAuthenticated ? "/" : "/login");
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      toast.error("Please log in to verify your email");
-      navigate("/login");
-    }
-  }, [isAuthenticated, navigate]);
-
-  useEffect(() => {
-    if (verifyEmail) {
-      navigate(redirect);
-      toast.success(successMessage);
-    }
-  }, [verifyEmail, navigate, redirect, successMessage]);
-
-  const handleVerify = (e) => {
-    e.preventDefault();
-    if (otp.length !== 6)
-      return toast.error("OTP must be 6 digits");
-    dispatch(verifyEmailOtp({ email: user?.email, otp }));
-  };
-
-  const handleResendOtp = () => {
-    if (user?.email) {
-      dispatch(resendOtp(user.email));
-    }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      transition: { duration: 0.6, ease: "easeOut", staggerChildren: 0.15 },
-    },
-    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.3 } },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30, scale: 0.9 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { duration: 0.5, ease: "easeOut" },
-    },
-  };
-
-  const buttonVariants = {
-    hover: { scale: 1.05, boxShadow: "0px 4px 20px rgba(59, 130, 246, 0.5)" },
-    tap: { scale: 0.98 },
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-100 px-4 sm:px-6 lg:px-8">
-      <MetaData title="Verify Email | Samridhi Enterprises" description="Verify your email address to activate your Samridhi Enterprises account and start shopping for bike parts." keywords="verify email, email verification, Samridhi Enterprises activation, bike parts account" />
-      <AnimatePresence>
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          className="bg-white rounded-3xl shadow-xl border border-blue-200/50 backdrop-blur-sm p-6 sm:p-8 max-w-md w-full text-center sm:max-w-lg"
-        >
-          <motion.h2
-            variants={itemVariants}
-            className="text-3xl sm:text-4xl font-serif font-semibold text-blue-800 mb-6 sm:mb-8 text-center tracking-tight"
-          >
-            Verify Your Email
-          </motion.h2>
-          <motion.p
-            variants={itemVariants}
-            className="text-blue-700 mb-6 sm:mb-8 text-sm sm:text-base"
-          >
-            Enter the 6-digit OTP sent to{" "}
-            <strong>{user?.email || "your email"}</strong>
-          </motion.p>
-
-          <form onSubmit={handleVerify}>
-            <motion.div variants={itemVariants} className="mb-5 sm:mb-6">
-              <motion.input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                maxLength="6"
-                placeholder="Enter OTP"
-                className="w-full p-3 sm:p-4 rounded-lg border border-blue-400 bg-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-blue-500/50 text-center text-lg sm:text-xl font-semibold tracking-wider transition-all duration-300"
-                whileFocus={{ scale: 1.02 }}
-              />
-            </motion.div>
-            <motion.button
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 sm:py-4 rounded-lg font-medium tracking-wide shadow-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center text-sm sm:text-base"
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin h-5 w-5 mr-2 sm:h-6 sm:w-6" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v8z"
-                    />
-                  </svg>
-                  Verifying...
-                </span>
-              ) : (
-                "Verify OTP"
-              )}
-            </motion.button>
-          </form>
-
-          <motion.button
-            variants={buttonVariants}
-            whileHover="hover"
-            whileTap="tap"
-            onClick={handleResendOtp}
-            className="mt-6 sm:mt-8 text-blue-500 font-medium hover:text-blue-600 transition-colors duration-200 text-sm sm:text-base"
-            disabled={loading}
-          >
-            Resend OTP
-          </motion.button>
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
-};
-
-export default VerifyEmail;
+  useEffect(() => { if (!isAuthenticated) { toast.error("Please log in to verify your email"); navigate("/login"); } }, [isAuthenticated, navigate]);
+  useEffect(() => { if (verifyEmail) { toast.success(successMessage); navigate(redirect); } }, [verifyEmail, navigate, redirect, successMessage]);
+  const submit = (e) => { e.preventDefault(); if (!/^\d{6}$/.test(otp)) return toast.error("OTP must be 6 digits"); dispatch(verifyEmailOtp({ email: user?.email, otp })); };
+  return <><MetaData title="Verify Email | Samridhi Enterprises" description="Verify your email address securely." keywords="email verification, Samridhi Enterprises"/><main className="min-h-[calc(100vh-140px)] bg-[var(--surface-1)] px-4 py-10 sm:px-6"><motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="mx-auto w-full max-w-xl rounded-[2rem] border border-[var(--line)] bg-[var(--surface-0)] p-6 text-center shadow-[0_24px_80px_rgba(15,23,42,.1)] sm:p-10 lg:p-14"><div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20"><MailCheck className="h-7 w-7"/></div><p className="mt-6 text-xs font-bold uppercase tracking-[.18em] text-blue-600">Email verification</p><h1 className="mt-2 text-3xl font-black text-[var(--text-strong)]">Verify your email</h1><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--text-muted)]">Enter the 6-digit code sent to <strong className="text-[var(--text-strong)]">{user?.email || "your email"}</strong>.</p><form onSubmit={submit} className="mx-auto mt-8 max-w-sm space-y-4"><input aria-label="Email verification OTP" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-1)] px-4 py-4 text-center text-2xl font-black tracking-[.35em] text-[var(--text-strong)] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"/><button disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 disabled:opacity-60">{loading ? "Verifying…" : <>Verify email <ArrowRight className="h-4 w-4"/></>}</button></form><button type="button" onClick={() => dispatch(resendOtp(user?.email))} disabled={loading} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--text-muted)] hover:text-blue-600"><RefreshCw className="h-4 w-4"/>Resend code</button></motion.div></main></>;
+}
