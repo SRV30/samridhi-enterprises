@@ -1,32 +1,29 @@
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import config from "./index.js";
 
 let mongoServer;
 
 async function connectDB() {
-  try {
-    if (config.mongodbUrl) {
-      try {
-        await mongoose.connect(config.mongodbUrl);
-        console.log("connect DB");
-        return;
-      } catch (atlasError) {
-        console.log("Atlas connection failed, falling back to local memory DB", atlasError.message);
-      }
-    }
-
-    if (!mongoServer) {
-      mongoServer = await MongoMemoryServer.create();
-    }
-
-    const uri = mongoServer.getUri();
-    await mongoose.connect(uri);
-    console.log("connect DB (memory)");
-  } catch (error) {
-    console.log("Mongodb connect error", error);
+  // Never silently replace a failed production database with an ephemeral DB.
+  if (config.mongodbUrl) {
+    await mongoose.connect(config.mongodbUrl);
+    console.log("Connected to configured MongoDB");
+    return;
   }
+
+  if (config.isProduction) {
+    throw new Error("MONGODB_URL is required in production.");
+  }
+
+  if (!mongoServer) {
+    mongoServer = await MongoMemoryReplSet.create({
+      replSet: { count: 1, storageEngine: "wiredTiger" },
+    });
+  }
+
+  await mongoose.connect(mongoServer.getUri());
+  console.log("Connected to local in-memory MongoDB replica set");
 }
 
 export default connectDB;
-// Configured database transaction retry settings for high concurrency
