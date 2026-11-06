@@ -20,6 +20,7 @@ import {
 } from "../controllers/userController.js";
 import auth from "../middleware/auth.js";
 import upload from "../middleware/multer.js";
+import validateUploadedImages from "../middleware/validateUploadedImages.js";
 import admin from "../middleware/Admin.js";
 import { createAuthOtpLimiter } from "../middleware/rateLimiter.js";
 import validateSchema from "../middleware/validateSchema.js";
@@ -57,7 +58,7 @@ userRouter.post("/login", authOtpIpLimit, validateSchema(loginSchema), loginUser
 
 userRouter.get("/logout", logoutUser);
 
-userRouter.put("/upload-avatar", auth, upload.single("avatar"), uploadAvatar);
+userRouter.put("/upload-avatar", auth, upload.single("avatar"), validateUploadedImages, uploadAvatar);
 
 userRouter.put("/update/password", auth, validateSchema(updatePasswordSchema), updatePassword);
 
@@ -73,6 +74,7 @@ userRouter.put(
   "/update-user",
   auth,
   upload.single("avatar"),
+  validateUploadedImages,
   updateUserDetails
 );
 
