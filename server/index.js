@@ -7,6 +7,7 @@ import errorMiddleware from "./middleware/error.js";
 import requestLogger from "./middleware/requestLogger.js";
 import validateEnv from "./utils/validateEnv.js";
 import config from "./config/index.js";
+import csrfProtection from "./middleware/csrfProtection.js";
 
 validateEnv();
 
@@ -54,14 +55,13 @@ app.use(
   })
 );
 
-import csrfProtection from "./middleware/csrfProtection.js";
-app.use(csrfProtection(allowedOrigins));
 
 import rateLimiter from "./middleware/rateLimiter.js";
 import { inputSanitizer } from "./middleware/inputSanitizer.js";
 import responseWrapper from "./middleware/responseWrapper.js";
 
 app.use(cookieParser());
+app.use(csrfProtection(allowedOrigins));
 app.use(express.json());
 app.use(responseWrapper);
 app.use(inputSanitizer);
