@@ -67,7 +67,7 @@ export const upsertGuestCartItem = async ({ partId, quantity }) => {
     item.quantity += quantity;
     item.price = unitPrice * item.quantity;
   } else {
-    const partRes = await axiosInstance.get(`/api/parts/${partId}`);
+    const partRes = await axiosInstance.get(`/api/parts/get/${partId}`);
     const partData = partRes.data.part;
 
     guestCart.items.push({
