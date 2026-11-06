@@ -64,6 +64,7 @@ const userSchema = new mongoose.Schema(
     ],
     // Serializes concurrent address mutations within a transaction.
     addressMutationVersion: { type: Number, default: 0 },
+    garageMutationVersion: { type: Number, default: 0 },
     orderHistory: [
       {
         type: mongoose.Schema.ObjectId,
