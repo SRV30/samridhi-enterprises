@@ -232,13 +232,12 @@ export const adminVerifyPayment = catchAsyncErrors(async (req, res, next) => {
       { new: true, runValidators: true }
     ).populate("user", "name email");
     if (!approvedOrder) throw new ErrorHandler("This order was changed by another request. Refresh and try again.", 409);
-    Object.assign(order, approvedOrder.toObject());
     try {
-      await sendEmail({ sendTo: order.user?.email, subject: `Payment Verified - Receipt for Order ${order._id}`, html: orderReceiptHtml(order, order.user) });
+      await sendEmail({ sendTo: approvedOrder.user?.email, subject: `Payment Verified - Receipt for Order ${approvedOrder._id}`, html: orderReceiptHtml(approvedOrder, approvedOrder.user) });
     } catch (mailErr) {
       console.error("Receipt email failed:", mailErr.message);
     }
-    return res.sendSuccess({ message: "Payment approved and order confirmed", order });
+    return res.sendSuccess({ message: "Payment approved and order confirmed", order: approvedOrder });
   }
 
   const rejectedOrder = await cancelOrderAndRestoreStock({
