@@ -102,7 +102,7 @@ Make sure the following are installed before you begin:
 
 | Tool | Version | Download |
 |---|---|---|
-| Node.js | v18 or higher | https://nodejs.org |
+| Node.js | v20 or higher (CI uses v20) | https://nodejs.org |
 | Git | Any recent version | https://git-scm.com |
 | MongoDB | Local or Atlas | https://mongodb.com |
 
@@ -132,6 +132,8 @@ cp .env.example .env
 
 Open `server/.env` and fill in all required values.
 See [Environment Variables](#-environment-variables) below for what each variable means and where to get it.
+
+The backend uses MongoDB transactions for order inventory and address/garage consistency. Use MongoDB Atlas or another replica-set deployment in production; a standalone MongoDB server does not support these transactions. If `MONGODB_URL` is omitted in local development, the backend starts an in-memory MongoDB replica set (data is temporary).
 
 ```bash
 # Start the backend development server (runs on http://localhost:5000)
