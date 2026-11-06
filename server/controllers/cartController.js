@@ -17,19 +17,20 @@ const getOrCreateCart = async (userId) => {
 };
 
 const addItemToCart = async (cart, partId, quantity) => {
-  const part = await Part.findById(partId);
-  if (!part) {
-    throw new ErrorHandler("Part not found", 404);
+  const part = await Part.findOne({ _id: partId, isDeleted: false });
+  if (!part) throw new ErrorHandler("Part not found or no longer available", 404);
+
+  const itemIndex = cart.items.findIndex((item) => item.part.toString() === partId);
+  const resultingQuantity = (itemIndex >= 0 ? cart.items[itemIndex].quantity : 0) + quantity;
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new ErrorHandler("Quantity must be a whole number of at least 1", 400);
   }
-  if (part.stock < quantity) {
-    throw new ErrorHandler("Insufficient stock", 400);
+  if (resultingQuantity > part.stock) {
+    throw new ErrorHandler(`Only ${part.stock} unit(s) are currently available`, 400);
   }
 
-  const itemIndex = cart.items.findIndex(
-    (item) => item.part.toString() === partId
-  );
   if (itemIndex >= 0) {
-    cart.items[itemIndex].quantity += quantity;
+    cart.items[itemIndex].quantity = resultingQuantity;
     cart.items[itemIndex].price = part.price * cart.items[itemIndex].quantity;
   } else {
     cart.items.push({
@@ -79,10 +80,8 @@ export const syncCart = catchAsyncErrors(async (req, res) => {
     }
 
     try {
-      const part = await Part.findById(partId);
-      if (!part) {
-        throw new ErrorHandler("Part not found", 404);
-      }
+      const part = await Part.findOne({ _id: partId, isDeleted: false });
+      if (!part) throw new ErrorHandler("Part not found or no longer available", 404);
       if (part.stock < quantity) {
         throw new ErrorHandler("Insufficient stock", 400);
       }
@@ -249,8 +248,8 @@ export const updateCartItem = catchAsyncErrors(async (req, res, next) => {
   if (itemIndex < 0)
     return next(new ErrorHandler("Item not found in cart", 404));
 
-  const part = await Part.findById(partId);
-  if (!part) return next(new ErrorHandler("Product not found", 404));
+  const part = await Part.findOne({ _id: partId, isDeleted: false });
+  if (!part) return next(new ErrorHandler("Product not found or no longer available", 404));
   if (part.stock < quantity)
     return next(new ErrorHandler("Insufficient stock", 400));
 
