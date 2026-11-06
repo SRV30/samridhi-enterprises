@@ -35,7 +35,11 @@ if (config.trustProxy) {
   app.set("trust proxy", getTrustProxyConfig(config.trustProxy));
 }
 
-const allowedOrigins = [config.frontendUrl, "http://localhost:5173"];
+const allowedOrigins = [
+  config.frontendUrl,
+  config.frontendWwwUrl,
+  "http://localhost:5173",
+].filter(Boolean);
 
 import securityHeaders from "./middleware/securityHeaders.js";
 app.use(securityHeaders);
