@@ -26,7 +26,7 @@ export default function PremiumCart() {
     }
   }, [error, dispatch]);
 
-  const subtotal = useMemo(() => items.reduce((sum, item) => sum + Number(item.price || item.part?.price || 0) * Number(item.quantity || 0), 0), [items]);
+  const subtotal = useMemo(() => items.reduce((sum, item) => sum + Number(item.price ?? (Number(item.part?.price || 0) * Number(item.quantity || 0))), 0), [items]);
   const itemCount = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   const shipping = subtotal > 0 ? 50 : 0;
   const total = subtotal + shipping;
