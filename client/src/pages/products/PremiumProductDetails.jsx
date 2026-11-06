@@ -76,6 +76,7 @@ export default function PremiumProductDetails() {
   const wishlistItems = wishlist?.items || [];
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [cartActionLoading, setCartActionLoading] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -126,16 +127,42 @@ export default function PremiumProductDetails() {
     setQuantity((current) => Math.max(1, Math.min(maxQuantity || 1, Number(current || 1) + delta)));
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!isAuthenticated) {
-      toast.info("Please log in to add items to cart");
+      toast.info("Please log in to add items to your cart");
+      navigate(`/login?redirect=products/${id}`);
+      return false;
+    }
+    if (!part?._id || !Number.isInteger(Number(quantity)) || Number(quantity) < 1) {
+      toast.error("Please select a valid quantity");
+      return false;
+    }
+    if (Number(part.stock) < Number(quantity)) {
+      toast.error("The selected quantity is not available");
+      return false;
+    }
+
+    setCartActionLoading(true);
+    try {
+      await dispatch(addToCart({ partId: part._id, quantity: Number(quantity) })).unwrap();
+      toast.success(`${part.name} added to cart`);
+      return true;
+    } catch (error) {
+      toast.error(typeof error === "string" ? error : "Unable to add this item to your cart. Please try again.");
+      return false;
+    } finally {
+      setCartActionLoading(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!isAuthenticated) {
+      toast.info("Please log in before checkout");
       navigate(`/login?redirect=products/${id}`);
       return;
     }
-    if (!part?.stock) return toast.error("This product is out of stock");
-    dispatch(addToCart({ partId: part._id, name: part.name, price: part.price, quantity })).then((result) => {
-      if (!result?.error) toast.success(`${part.name} added to cart`);
-    });
+    const added = await handleAddToCart();
+    if (added) navigate("/checkout");
   };
 
   const toggleWishlist = () => {
@@ -219,8 +246,8 @@ export default function PremiumProductDetails() {
 
               <div className="grid grid-cols-3 gap-2 mt-6 py-5 border-y border-[var(--line)]"><div className="flex flex-col items-center text-center gap-1"><Truck className="w-5 h-5 text-blue-600" /><span className="text-[10px] font-semibold">Fast Delivery</span></div><div className="flex flex-col items-center text-center gap-1 border-x border-[var(--line)]"><ShieldCheck className="w-5 h-5 text-blue-600" /><span className="text-[10px] font-semibold">Secure Payment</span></div><div className="flex flex-col items-center text-center gap-1"><RotateCcw className="w-5 h-5 text-blue-600" /><span className="text-[10px] font-semibold">Easy Returns</span></div></div>
 
-              <div className="mt-6 flex flex-col sm:flex-row gap-3"><div className="h-12 flex items-center rounded-xl border border-[var(--line)] bg-[var(--surface-0)]"><button disabled={!part.stock} onClick={() => changeQuantity(-1)} className="w-12 h-full grid place-items-center hover:text-blue-600 disabled:opacity-40"><Minus className="w-4 h-4" /></button><span className="w-10 text-center font-bold">{quantity}</span><button disabled={!part.stock || quantity >= maxQuantity} onClick={() => changeQuantity(1)} className="w-12 h-full grid place-items-center hover:text-blue-600 disabled:opacity-40"><Plus className="w-4 h-4" /></button></div><button disabled={!part.stock} onClick={handleAddToCart} className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold inline-flex items-center justify-center gap-2 transition"><ShoppingCart className="w-5 h-5" /> Add to Cart</button></div>
-              <Link to="/checkout" className="mt-3 h-11 rounded-xl border border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold grid place-items-center text-sm">Buy Now</Link>
+              <div className="mt-6 flex flex-col sm:flex-row gap-3"><div className="h-12 flex items-center rounded-xl border border-[var(--line)] bg-[var(--surface-0)]"><button disabled={!part.stock} onClick={() => changeQuantity(-1)} className="w-12 h-full grid place-items-center hover:text-blue-600 disabled:opacity-40"><Minus className="w-4 h-4" /></button><span className="w-10 text-center font-bold">{quantity}</span><button disabled={!part.stock || quantity >= maxQuantity} onClick={() => changeQuantity(1)} className="w-12 h-full grid place-items-center hover:text-blue-600 disabled:opacity-40"><Plus className="w-4 h-4" /></button></div><button disabled={!part.stock || cartActionLoading} onClick={handleAddToCart} className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold inline-flex items-center justify-center gap-2 transition">{cartActionLoading ? <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> : <ShoppingCart className="w-5 h-5" />}{cartActionLoading ? "Adding..." : "Add to Cart"}</button></div>
+              <button type="button" disabled={!part.stock || cartActionLoading} onClick={handleBuyNow} className="mt-3 w-full h-11 rounded-xl border border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed font-semibold grid place-items-center text-sm transition-colors">Buy Now</button>
             </div>
           </div>
         </motion.section>
