@@ -27,12 +27,12 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, config.jwt.secret || process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id);
 
-    if (!req.user) {
+    if (!req.user || req.user.isDeleted) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (req.user.status === "Suspended") {
-      return res.status(403).json({ success: false, message: "Your account is suspended" });
+    if (req.user.status !== "Active") {
+      return res.status(403).json({ success: false, message: "Your account is not active" });
     }
 
     next();

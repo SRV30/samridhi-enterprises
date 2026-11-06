@@ -56,9 +56,16 @@ export const updateVehicle = catchAsyncErrors(async (req, res, next) => {
     );
   }
 
-  const updated = await Garage.findByIdAndUpdate(
-    id,
-    { bikeModel, year, variant, features, isDefault },
+  const update = {};
+  if (bikeModel !== undefined) update.bikeModel = bikeModel;
+  if (year !== undefined) update.year = year;
+  if (variant !== undefined) update.variant = variant;
+  if (features !== undefined) update.features = features;
+  if (isDefault !== undefined) update.isDefault = isDefault === true || isDefault === "true";
+
+  const updated = await Garage.findOneAndUpdate(
+    { _id: id, user: req.user._id },
+    { $set: update },
     { new: true, runValidators: true }
   );
 
