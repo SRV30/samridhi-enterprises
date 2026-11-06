@@ -7,7 +7,7 @@ import User from "../models/userModel.js";
 import Part from "../models/partModel.js";
 import Subscription from "../models/subscriptionModel.js";
 import catchAsyncErrors from "../middleware/catchAsyncErrors.js";
-import { uploadImage } from "../utils/cloudinary.js";
+import { uploadImage, deleteImage } from "../utils/cloudinary.js";
 import sendEmail from "../config/sendEmail.js";
 import orderReceiptHtml from "../template/orderReceiptTemplate.js";
 import generateAdminNewOrderEmail from "../template/adminNewOrderTemplate.js";
@@ -25,12 +25,39 @@ const VALID_TRANSITIONS = {
   Cancelled: [],
 };
 
-const restoreOrderStock = async (order) => {
-  if (order.stockRestored) return;
-  for (const item of order.items) {
-    if (item.part) await Part.findByIdAndUpdate(item.part, { $inc: { stock: item.quantity } });
+// Cancellation and inventory restoration are committed atomically. The conditional
+// order update prevents concurrent requests from restoring the same stock twice.
+const cancelOrderAndRestoreStock = async ({ orderId, userId, allowedStatuses, paymentStatus, rejectionReason }) => {
+  const session = await mongoose.startSession();
+  let cancelledOrder;
+  try {
+    await session.withTransaction(async () => {
+      const lookup = { _id: orderId };
+      if (userId) lookup.user = userId;
+      const current = await Order.findOne(lookup).session(session);
+      if (!current) throw new ErrorHandler("Order not found", 404);
+      if (!allowedStatuses.includes(current.orderStatus)) {
+        throw new ErrorHandler("This order is " + current.orderStatus + " and can no longer be cancelled.", 409);
+      }
+      const update = {
+        $set: { orderStatus: "Cancelled", stockRestored: true, ...(paymentStatus ? { paymentStatus } : {}), ...(rejectionReason !== undefined ? { rejectionReason } : {}) },
+        $push: { statusHistory: { status: "Cancelled", changedAt: new Date() } },
+      };
+      cancelledOrder = await Order.findOneAndUpdate(
+        { _id: current._id, orderStatus: current.orderStatus, stockRestored: { $ne: true } },
+        update,
+        { new: true, session, runValidators: true }
+      );
+      if (!cancelledOrder) throw new ErrorHandler("This order was changed by another request. Refresh and try again.", 409);
+      const stockOps = current.items.filter((item) => item.part && item.quantity > 0).map((item) => ({
+        updateOne: { filter: { _id: item.part }, update: { $inc: { stock: item.quantity } } },
+      }));
+      if (stockOps.length) await Part.bulkWrite(stockOps, { ordered: true, session });
+    });
+    return cancelledOrder;
+  } finally {
+    await session.endSession();
   }
-  order.stockRestored = true;
 };
 
 export const createOrder = catchAsyncErrors(async (req, res, next) => {
@@ -52,6 +79,8 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
   }
 
   const session = await mongoose.startSession();
+  let uploadedScreenshotPublicId = "";
+  let commitAttempted = false;
   session.startTransaction();
   try {
     const stockOps = cart.items.map((item) => ({
@@ -100,7 +129,8 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
     let paymentScreenshot = { public_id: "", url: "" };
     if (paymentMethod === "Online") {
       const uploaded = await uploadImage(req.file);
-      paymentScreenshot = { public_id: uploaded.public_id || "", url: uploaded.secure_url || uploaded.url || "" };
+      uploadedScreenshotPublicId = uploaded.public_id || "";
+      paymentScreenshot = { public_id: uploadedScreenshotPublicId, url: uploaded.secure_url || uploaded.url || "" };
     }
 
     const orderStatus = paymentMethod === "Online" ? "Pending Verification" : "Confirmed";
@@ -125,6 +155,7 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
     cart.items = [];
     cart.total = 0;
     await cart.save({ session });
+    commitAttempted = true;
     await session.commitTransaction();
 
     try {
@@ -149,6 +180,10 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
     });
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
+    if (uploadedScreenshotPublicId && !commitAttempted) {
+      try { await deleteImage(uploadedScreenshotPublicId); }
+      catch (cleanupError) { console.error("Failed to clean up orphaned payment screenshot:", cleanupError.message); }
+    }
     return next(error);
   } finally {
     await session.endSession();
@@ -167,18 +202,13 @@ export const getOrderById = catchAsyncErrors(async (req, res, next) => {
   res.sendSuccess({ order });
 });
 
-export const cancelMyOrder = catchAsyncErrors(async (req, res, next) => {
-  const order = await Order.findById(req.params.id);
-  if (!order) return next(new ErrorHandler("Order not found", 404));
-  if (order.user.toString() !== req.user._id.toString()) return next(new ErrorHandler("Not authorized to cancel this order", 403));
-  if (order.orderStatus === "Cancelled") return next(new ErrorHandler("This order is already cancelled", 400));
-  if (!CUSTOMER_CANCELLABLE_STATUSES.includes(order.orderStatus)) return next(new ErrorHandler(`This order is ${order.orderStatus} and can no longer be cancelled.`, 400));
-
-  order.orderStatus = "Cancelled";
-  order.rejectionReason = "Cancelled by customer";
-  order.statusHistory.push({ status: "Cancelled", changedAt: new Date() });
-  await restoreOrderStock(order);
-  await order.save();
+export const cancelMyOrder = catchAsyncErrors(async (req, res) => {
+  const order = await cancelOrderAndRestoreStock({
+    orderId: req.params.id,
+    userId: req.user._id,
+    allowedStatuses: CUSTOMER_CANCELLABLE_STATUSES,
+    rejectionReason: "Cancelled by customer",
+  });
   res.sendSuccess({ message: "Order cancelled successfully", order });
 });
 
@@ -196,12 +226,13 @@ export const adminVerifyPayment = catchAsyncErrors(async (req, res, next) => {
   if (order.orderStatus !== "Pending Verification" || order.paymentStatus !== "Pending") return next(new ErrorHandler("Only orders awaiting payment verification can be approved or rejected", 400));
 
   if (action === "approve") {
-    order.paymentStatus = "Success";
-    order.orderStatus = "Confirmed";
-    order.verifiedAt = new Date();
-    order.rejectionReason = "";
-    order.statusHistory.push({ status: "Confirmed", changedAt: new Date() });
-    await order.save();
+    const approvedOrder = await Order.findOneAndUpdate(
+      { _id: order._id, orderStatus: "Pending Verification", paymentStatus: "Pending" },
+      { $set: { paymentStatus: "Success", orderStatus: "Confirmed", verifiedAt: new Date(), rejectionReason: "" }, $push: { statusHistory: { status: "Confirmed", changedAt: new Date() } } },
+      { new: true, runValidators: true }
+    ).populate("user", "name email");
+    if (!approvedOrder) throw new ErrorHandler("This order was changed by another request. Refresh and try again.", 409);
+    Object.assign(order, approvedOrder.toObject());
     try {
       await sendEmail({ sendTo: order.user?.email, subject: `Payment Verified - Receipt for Order ${order._id}`, html: orderReceiptHtml(order, order.user) });
     } catch (mailErr) {
@@ -210,22 +241,23 @@ export const adminVerifyPayment = catchAsyncErrors(async (req, res, next) => {
     return res.sendSuccess({ message: "Payment approved and order confirmed", order });
   }
 
-  order.paymentStatus = "Failed";
-  order.orderStatus = "Cancelled";
-  order.rejectionReason = rejectionReason || "Payment could not be verified";
-  order.statusHistory.push({ status: "Cancelled", changedAt: new Date() });
-  await restoreOrderStock(order);
-  await order.save();
+  const rejectedOrder = await cancelOrderAndRestoreStock({
+    orderId: req.params.id,
+    allowedStatuses: ["Pending Verification"],
+    paymentStatus: "Failed",
+    rejectionReason: rejectionReason || "Payment could not be verified",
+  });
+  const rejectedWithUser = await Order.findById(rejectedOrder._id).populate("user", "name email");
   try {
     await sendEmail({
-      sendTo: order.user?.email,
-      subject: `Payment Verification Failed - Order ${order._id}`,
-      html: `<p>Payment verification failed for order <strong>${order._id}</strong>.</p><p>Reason: ${order.rejectionReason}</p>`,
+      sendTo: rejectedWithUser.user?.email,
+      subject: `Payment Verification Failed - Order ${rejectedOrder._id}`,
+      html: `<p>Payment verification failed for order <strong>${rejectedOrder._id}</strong>.</p><p>Reason: ${rejectedOrder.rejectionReason}</p>`,
     });
   } catch (mailErr) {
     console.error("Rejection email failed:", mailErr.message);
   }
-  res.sendSuccess({ message: "Payment rejected and order cancelled", order });
+  res.sendSuccess({ message: "Payment rejected and order cancelled", order: rejectedWithUser });
 });
 
 export const adminUpdateOrderStatus = catchAsyncErrors(async (req, res, next) => {
@@ -240,13 +272,26 @@ export const adminUpdateOrderStatus = catchAsyncErrors(async (req, res, next) =>
   if (order.paymentStatus !== "Success" && ["Processing", "Shipped", "Delivered"].includes(targetStatus)) return next(new ErrorHandler("Cannot advance fulfilment until the order's payment is verified", 400));
 
   const previousStatus = order.orderStatus;
-  order.orderStatus = targetStatus;
-  if (carrier !== undefined) order.carrier = carrier;
-  if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
-  if (previousStatus !== targetStatus || !order.statusHistory.length) order.statusHistory.push({ status: targetStatus, changedAt: new Date() });
-  if (targetStatus === "Cancelled") await restoreOrderStock(order);
-  await order.save();
-  res.sendSuccess({ message: `Order status updated to ${targetStatus}`, order });
+  if (targetStatus === "Cancelled") {
+    const cancelled = await cancelOrderAndRestoreStock({
+      orderId: req.params.id,
+      allowedStatuses: Object.keys(VALID_TRANSITIONS).filter((status) => VALID_TRANSITIONS[status].includes("Cancelled")),
+    });
+    const populated = await Order.findById(cancelled._id).populate("user", "name email");
+    return res.sendSuccess({ message: "Order status updated to Cancelled", order: populated });
+  }
+  const setFields = { orderStatus: targetStatus };
+  if (carrier !== undefined) setFields.carrier = carrier;
+  if (trackingNumber !== undefined) setFields.trackingNumber = trackingNumber;
+  const update = { $set: setFields };
+  if (previousStatus !== targetStatus || !order.statusHistory.length) update.$push = { statusHistory: { status: targetStatus, changedAt: new Date() } };
+  const updatedOrder = await Order.findOneAndUpdate(
+    { _id: order._id, orderStatus: previousStatus, paymentStatus: order.paymentStatus },
+    update,
+    { new: true, runValidators: true }
+  ).populate("user", "name email");
+  if (!updatedOrder) throw new ErrorHandler("This order was changed by another request. Refresh and try again.", 409);
+  res.sendSuccess({ message: `Order status updated to ${targetStatus}`, order: updatedOrder });
 });
 
 export const createPartSubscription = catchAsyncErrors(async (req, res) => {
