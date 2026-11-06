@@ -68,12 +68,11 @@ small {
   line-height: 1.5;
 }
 
-html.dark body { background-color: #0b1220; color: #e5e7eb; }
+body { background-color: var(--surface-1); color: var(--text-strong); }
 html.dark input,
 html.dark textarea,
-html.dark select,
-html.dark button { color-scheme: dark; }
-html.dark { background: #0b1220; }
+html.dark select { color-scheme: dark; }
+html { background: var(--surface-1); }
 
 /* Prevent dense UI utility text from becoming unreadably small. */
 .text-\[9px\],
