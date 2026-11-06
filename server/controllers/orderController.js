@@ -193,7 +193,7 @@ export const adminVerifyPayment = catchAsyncErrors(async (req, res, next) => {
   if (!["approve", "reject"].includes(action)) return next(new ErrorHandler("Action must be either 'approve' or 'reject'", 400));
   const order = await Order.findById(req.params.id).populate("user", "name email");
   if (!order) return next(new ErrorHandler("Order not found", 404));
-  if (order.orderStatus === "Cancelled" || order.paymentStatus === "Failed") return next(new ErrorHandler("Order is already cancelled or payment rejected", 400));
+  if (order.orderStatus !== "Pending Verification" || order.paymentStatus !== "Pending") return next(new ErrorHandler("Only orders awaiting payment verification can be approved or rejected", 400));
 
   if (action === "approve") {
     order.paymentStatus = "Success";
