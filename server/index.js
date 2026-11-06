@@ -103,9 +103,14 @@ app.use(errorMiddleware);
 import mongoose from "mongoose";
 let server;
 
-connectDB().then(() => {
-  server = app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
-});
+connectDB()
+  .then(() => {
+    server = app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+  })
+  .catch((error) => {
+    console.error("Database connection failed. Server startup aborted:", error.message);
+    process.exit(1);
+  });
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
