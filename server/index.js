@@ -54,6 +54,9 @@ app.use(
   })
 );
 
+import csrfProtection from "./middleware/csrfProtection.js";
+app.use(csrfProtection(allowedOrigins));
+
 import rateLimiter from "./middleware/rateLimiter.js";
 import { inputSanitizer } from "./middleware/inputSanitizer.js";
 import responseWrapper from "./middleware/responseWrapper.js";
