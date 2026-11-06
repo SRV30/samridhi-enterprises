@@ -2,6 +2,7 @@
 
 import express from "express";
 import upload from "../middleware/multer.js";
+import validateUploadedImages from "../middleware/validateUploadedImages.js";
 import {
   addBikeModel,
   getAllBikeModels,
@@ -13,13 +14,14 @@ import admin from "../middleware/Admin.js";
 
 const bikeModelRouter = express.Router();
 
-bikeModelRouter.post("/add", upload.single("image"), auth, admin, addBikeModel);
+bikeModelRouter.post("/add", auth, admin, upload.single("image"), validateUploadedImages, addBikeModel);
 bikeModelRouter.get("/get", getAllBikeModels);
 bikeModelRouter.put(
   "/update/:id",
-  upload.single("image"),
   auth,
   admin,
+  upload.single("image"),
+  validateUploadedImages,
   updateBikeModel
 );
 bikeModelRouter.delete("/delete/:id", auth, admin, deleteBikeModel);
