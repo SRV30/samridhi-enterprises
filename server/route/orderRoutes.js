@@ -2,6 +2,7 @@ import express from "express";
 import auth from "../middleware/auth.js";
 import admin from "../middleware/Admin.js";
 import upload from "../middleware/multer.js";
+import validateUploadedImages from "../middleware/validateUploadedImages.js";
 import validateSchema from "../middleware/validateSchema.js";
 import {
   verifyPaymentSchema,
@@ -26,7 +27,7 @@ import {
 const orderRouter = express.Router();
 
 // Customer
-orderRouter.post("/new", auth, upload.single("paymentScreenshot"), createOrder);
+orderRouter.post("/new", auth, upload.single("paymentScreenshot"), validateUploadedImages, createOrder);
 orderRouter.get("/my-orders", auth, getMyOrders);
 orderRouter.put("/:id/cancel", auth, cancelMyOrder);
 
