@@ -124,7 +124,7 @@ export const syncCart = catchAsyncErrors(async (req, res) => {
 
   const syncedCart = await Cart.findOne({ user: userId }).populate(
     "items.part",
-    "name price images stock"
+    "name price images stock isDeleted"
   );
 
   res.sendSuccess({
@@ -147,8 +147,9 @@ const recalculateCart = ({ populatedItems }) => {
   for (const item of populatedItems) {
     const part = item.part;
 
-    if (part === null || part === undefined) {
+    if (part === null || part === undefined || part.isDeleted) {
       removedItems = true;
+      if (part?.name) warnings.push(`${part.name} is no longer available and has been removed from your cart.`);
       continue;
     }
 
@@ -203,7 +204,7 @@ const recalculateCart = ({ populatedItems }) => {
 export const getCart = catchAsyncErrors(async (req, res, next) => {
   let cart = await Cart.findOne({ user: req.user._id }).populate(
     "items.part",
-    "name price images stock"
+    "name price images stock isDeleted"
   );
 
   if (!cart) {
@@ -283,7 +284,7 @@ export const clearCart = catchAsyncErrors(async (req, res, next) => {
   await cart.save();
   const clearedCart = await Cart.findOne({ user: req.user._id }).populate(
     "items.part",
-    "name price images stock"
+    "name price images stock isDeleted"
   );
   res.sendSuccess({ cart: clearedCart });
 });
