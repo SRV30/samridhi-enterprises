@@ -4,7 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "node scripts/verifyConfig.js && node scripts/verifyRateLimiter.js && node scripts/verifyPasswordReset.js && node scripts/verifyResponseWrapper.js && node scripts/verifyRequestValidation.js && node scripts/verifyCsrfProtection.js",
+    "test": "node scripts/verifyConfig.js && node scripts/verifyRateLimiter.js && node scripts/verifyPasswordReset.js && node scripts/verifyResponseWrapper.js && node scripts/verifyRequestValidation.js && node scripts/verifyCsrfProtection.js && node scripts/verifyUploadedImages.js",
     "test:rate-limiter": "node scripts/verifyRateLimiter.js",
     "start": "index.js",
     "dev": "nodemon index.js"
