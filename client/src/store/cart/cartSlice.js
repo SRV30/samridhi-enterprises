@@ -6,7 +6,7 @@ const API_URL = "/api/cart";
 
 const addCartItem = async ({ partId, quantity }) => {
   if (!localStorage.getItem("user")) return upsertGuestCartItem({ partId, quantity });
-  const response = await axiosInstance.post(API_URL, { partId, quantity });
+  const response = await axiosInstance.post(`${API_URL}/add`, { partId, quantity });
   return response.data.cart;
 };
 
@@ -25,7 +25,7 @@ export const fetchCart = createAsyncThunk("cart/fetchCart", async (_, { rejectWi
       cart = getGuestCart();
     } else {
       const syncResult = await syncGuestCart();
-      const response = await axiosInstance.get(API_URL);
+      const response = await axiosInstance.get(`${API_URL}/get`);
       cart = response.data.cart;
       warnings = [...(response.data.warnings || []), ...(syncResult.warnings || [])];
       failedItems = syncResult.failedItems || [];
@@ -58,7 +58,7 @@ export const fetchCart = createAsyncThunk("cart/fetchCart", async (_, { rejectWi
 export const updateCartItem = createAsyncThunk("cart/updateCartItem", async ({ partId, quantity }, { rejectWithValue }) => {
   try {
     if (!localStorage.getItem("user")) return updateGuestCartItem({ partId, quantity });
-    const response = await axiosInstance.put(`${API_URL}/${partId}`, { quantity });
+    const response = await axiosInstance.put(`${API_URL}/update/${partId}`, { quantity });
     return response.data.cart;
   } catch (error) { return rejectWithValue(error.response?.data?.message || error.message); }
 });
@@ -66,7 +66,7 @@ export const updateCartItem = createAsyncThunk("cart/updateCartItem", async ({ p
 export const removeFromCart = createAsyncThunk("cart/removeFromCart", async (partId, { rejectWithValue }) => {
   try {
     if (!localStorage.getItem("user")) return removeGuestCartItem(partId);
-    const response = await axiosInstance.delete(`${API_URL}/${partId}`);
+    const response = await axiosInstance.delete(`${API_URL}/remove/${partId}`);
     return response.data.cart;
   } catch (error) { return rejectWithValue(error.response?.data?.message || error.message); }
 });
