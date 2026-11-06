@@ -10,17 +10,6 @@ jobs:
   server-verification:
     name: Backend Test Suite & Lint
     runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image: mongo:6.0
-        command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v7
@@ -32,11 +21,8 @@ jobs:
         run: |
           cd server
           npm install
-      - name: Initialize MongoDB replica set
-        run: mongosh mongodb://localhost:27017/admin --eval "rs.initiate()"
       - name: Run Backend Integration & Rate Limiter Tests
         env:
-          MONGODB_URL: mongodb://localhost:27017/samridhi-test
           JWT_SECRET: test_jwt_secret_key_12345
           JWT_EXPIRE: 7d
           NODE_ENV: test
