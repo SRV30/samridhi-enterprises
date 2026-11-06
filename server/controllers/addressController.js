@@ -1,4 +1,3 @@
-import { resolveDefaultStatus } from '../utils/defaultStatusResolver.js';
 import Address from "../models/addressModel.js";
 import User from "../models/userModel.js";
 import catchAsyncErrors from "../middleware/catchAsyncErrors.js";
